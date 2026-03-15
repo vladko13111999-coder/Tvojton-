@@ -15,6 +15,13 @@
       "when": 1773222725870,
       "tag": "0001_nosy_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773473301658,
+      "tag": "0002_confused_medusa",
+      "breakpoints": true
     }
   ]
 }
