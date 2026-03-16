@@ -101,14 +101,15 @@ export default function Home() {
                 Pomôže ti s textami, reklamami, vyhľadávaním a čoskoro aj s videami. Vyskúšaj zadarmo.
               </p>
               <div className="flex flex-wrap gap-3 mb-8">
-                <Button
-                  size="lg"
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
-                  onClick={() => scrollTo("contact")}
-                >
-                  Chcem vedieť viac
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+                <Link href="/agent">
+                  <Button
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
+                  >
+                    Vyskúšať agenta
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
                 <Button
                   size="lg"
                   variant="outline"
