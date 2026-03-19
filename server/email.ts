@@ -3,6 +3,8 @@ import nodemailer from "nodemailer";
 interface ContactEmailData {
   name: string;
   email: string;
+  telephone?: string;
+  website?: string;
   plan?: string;
   message?: string;
 }
@@ -91,6 +93,18 @@ export async function sendContactNotification(data: ContactEmailData): Promise<b
         <label>Email</label>
         <value><a href="mailto:${data.email}" style="color:#3b82f6;">${data.email}</a></value>
       </div>
+      ${data.telephone ? `
+      <div class="field">
+        <label>Telefónne číslo</label>
+        <value><a href="tel:${data.telephone}" style="color:#3b82f6;">${data.telephone}</a></value>
+      </div>
+      ` : ''}
+      ${data.website ? `
+      <div class="field">
+        <label>Web stránka</label>
+        <value><a href="${data.website}" style="color:#3b82f6;" target="_blank">${data.website}</a></value>
+      </div>
+      ` : ''}
       <div class="field">
         <label>Záujem o plán</label>
         <value><span class="badge">${planLabel}</span></value>
@@ -116,7 +130,14 @@ export async function sendContactNotification(data: ContactEmailData): Promise<b
       to: ADMIN_EMAIL,
       subject: `🤖 Nová registrácia: ${data.name} (${planLabel})`,
       html: htmlContent,
-      text: `Nová registrácia na Tvojton.online\n\nMeno: ${data.name}\nEmail: ${data.email}\nPlán: ${planLabel}\nSpráva: ${data.message || "—"}`,
+      text: `Nová registrácia na Tvojton.online
+
+Meno: ${data.name}
+Email: ${data.email}
+Telefón: ${data.telephone || "—"}
+Web stránka: ${data.website || "—"}
+Plán: ${planLabel}
+Správa: ${data.message || "—"}`,
     });
     console.log(`[Email] Notification sent to ${ADMIN_EMAIL} for ${data.email}`);
     return true;

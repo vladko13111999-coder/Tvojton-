@@ -27,6 +27,8 @@ export default function Home() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    telephone: "",
+    website: "",
     plan: "",
     message: "",
   });
@@ -35,7 +37,7 @@ export default function Home() {
   const submitContact = trpc.contact.submit.useMutation({
     onSuccess: () => {
       setFormSubmitted(true);
-      setFormData({ name: "", email: "", plan: "", message: "" });
+      setFormData({ name: "", email: "", telephone: "", website: "", plan: "", message: "" });
       toast.success("Ďakujeme! Budeme ťa informovať.");
     },
     onError: (err) => {
@@ -364,6 +366,70 @@ export default function Home() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="telephone" className="text-sm font-medium text-gray-700">Telefónne číslo</Label>
+                      <Input
+                        id="telephone"
+                        type="tel"
+                        placeholder="+421 900 123 456"
+                        value={formData.telephone}
+                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                        className="border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="website" className="text-sm font-medium text-gray-700">Web stránka <span className="text-gray-400">(voliteľné)</span></Label>
+                      <Input
+                        id="website"
+                        type="url"
+                        placeholder="https://www.example.com"
+                        value={formData.website}
+                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        className="border-gray-200"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
+                    <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
+                      <SelectTrigger className="border-gray-200">
+                        <SelectValue placeholder="Zatiaľ neviem" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unknown">Zatiaľ neviem</SelectItem>
+                        <SelectItem value="free">Free - Zadarmo</SelectItem>
+                        <SelectItem value="basic">Basic - 9€/mesiac</SelectItem>
+                        <SelectItem value="premium">Premium - 15€/mesiac</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="message" className="text-sm font-medium text-gray-700">
+                      Poznámky <span className="text-gray-400">(voliteľné)</span>
+                    </Label>
+                    <Textarea
+                      id="message"
+                      placeholder="Napr. Potrebujem pomôcť s písaním marketingových textov..."
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="border-gray-200 resize-none"
+                      rows={3}
+                    />
+                  </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="jan@example.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="border-gray-200"
+                        required
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
                     <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
@@ -399,7 +465,7 @@ export default function Home() {
                     {submitContact.isPending ? "Odosielam..." : "Chcem byť medzi prvými"}
                   </Button>
                   <p className="text-center text-xs text-gray-400">
-                    Tvoj email budeme používať len na informácie o Tvojton.online.
+                    Tvoj email a telefón budeme používať len na informácie o Tvojton.online.
                   </p>
                 </form>
               )}
