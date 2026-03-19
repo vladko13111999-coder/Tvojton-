@@ -103,14 +103,19 @@ export default function Home() {
                 Pomôže ti s textami, reklamami, vyhľadávaním a čoskoro aj s videami. Vyskúšaj zadarmo.
               </p>
               <div className="flex flex-wrap gap-3 mb-8">
-                <Button
-                  size="lg"
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
-                  onClick={() => window.open("http://80.15.7.37:8888", "_blank")}
+                <a
+                  href="http://80.15.7.37:8888"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  <Bot className="w-4 h-4" />
-                  Pozri demo
-                </Button>
+                  <Button
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
+                  >
+                    <Bot className="w-4 h-4" />
+                    Pozri demo
+                  </Button>
+                </a>
                 <Link href="/agent">
                   <Button
                     size="lg"
