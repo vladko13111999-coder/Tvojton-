@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -27,7 +26,8 @@ export default function Home() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    plan: "",
+    phone: "",
+    website: "",
     message: "",
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -35,7 +35,7 @@ export default function Home() {
   const submitContact = trpc.contact.submit.useMutation({
     onSuccess: () => {
       setFormSubmitted(true);
-      setFormData({ name: "", email: "", plan: "", message: "" });
+      setFormData({ name: "", email: "", phone: "", website: "", message: "" });
       toast.success("Ďakujeme! Budeme ťa informovať.");
     },
     onError: (err) => {
@@ -340,7 +340,7 @@ export default function Home() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-sm font-medium text-gray-700">Meno a priezvisko</Label>
+                      <Label htmlFor="name" className="text-sm font-medium text-gray-700">Meno a priezvisko *</Label>
                       <Input
                         id="name"
                         placeholder="Ján Varga"
@@ -351,7 +351,7 @@ export default function Home() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email *</Label>
                       <Input
                         id="email"
                         type="email"
@@ -363,27 +363,37 @@ export default function Home() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
-                    <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
-                      <SelectTrigger className="border-gray-200">
-                        <SelectValue placeholder="Zatiaľ neviem" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unknown">Zatiaľ neviem</SelectItem>
-                        <SelectItem value="free">Free - Zadarmo</SelectItem>
-                        <SelectItem value="basic">Basic - 9€/mesiac</SelectItem>
-                        <SelectItem value="premium">Premium - 15€/mesiac</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Telefónne číslo</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+421 900 123 456"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="website" className="text-sm font-medium text-gray-700">Web stránka</Label>
+                      <Input
+                        id="website"
+                        type="url"
+                        placeholder="https://www.mojafirma.sk"
+                        value={formData.website}
+                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        className="border-gray-200"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="message" className="text-sm font-medium text-gray-700">
-                      Čo by mal agent vedieť ako prvé? <span className="text-gray-400">(voliteľné)</span>
+                      Poznámky <span className="text-gray-400">(voliteľné)</span>
                     </Label>
                     <Textarea
                       id="message"
-                      placeholder="Napr. Potrebujem pomôcť s písaním marketingových textov..."
+                      placeholder="Sem napíšte vaše poznámky alebo otázky..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       className="border-gray-200 resize-none"
