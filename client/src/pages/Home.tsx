@@ -116,7 +116,7 @@ export default function Home() {
                   size="lg"
                   variant="outline"
                   className="border-gray-200 text-gray-700 hover:bg-gray-50 px-6"
-                  onClick={() => scrollTo("features")}
+                  onClick={() => window.open("http://80.15.7.37:8888", "_blank")}
                 >
                   Pozri demo
                 </Button>
