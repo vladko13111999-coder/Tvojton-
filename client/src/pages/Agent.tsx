@@ -72,7 +72,7 @@ export default function Agent() {
           <Button
             size="lg"
             className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
-            onClick={() => window.open("http://80.15.7.37:8888", "_blank")}
+            onClick={() => window.open("https://seo-christine-helping-designers.trycloudflare.com", "_blank")}
           >
             <ExternalLink className="w-4 h-4" />
             Otvoriť agenta v novom okne

@@ -104,7 +104,7 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap gap-3 mb-8">
                 <a
-                  href="http://80.15.7.37:8888"
+                  href="https://seo-christine-helping-designers.trycloudflare.com"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
