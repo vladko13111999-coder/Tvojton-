@@ -417,46 +417,6 @@ export default function Home() {
                       rows={3}
                     />
                   </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="jan@example.com"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="border-gray-200"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
-                    <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
-                      <SelectTrigger className="border-gray-200">
-                        <SelectValue placeholder="Zatiaľ neviem" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unknown">Zatiaľ neviem</SelectItem>
-                        <SelectItem value="free">Free - Zadarmo</SelectItem>
-                        <SelectItem value="basic">Basic - 9€/mesiac</SelectItem>
-                        <SelectItem value="premium">Premium - 15€/mesiac</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="message" className="text-sm font-medium text-gray-700">
-                      Čo by mal agent vedieť ako prvé? <span className="text-gray-400">(voliteľné)</span>
-                    </Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Napr. Potrebujem pomôcť s písaním marketingových textov..."
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="border-gray-200 resize-none"
-                      rows={3}
-                    />
-                  </div>
                   <Button
                     type="submit"
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11"
