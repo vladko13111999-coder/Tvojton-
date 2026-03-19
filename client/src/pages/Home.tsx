@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -26,8 +27,9 @@ export default function Home() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
+    telephone: "",
     website: "",
+    plan: "",
     message: "",
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -35,7 +37,7 @@ export default function Home() {
   const submitContact = trpc.contact.submit.useMutation({
     onSuccess: () => {
       setFormSubmitted(true);
-      setFormData({ name: "", email: "", phone: "", website: "", message: "" });
+      setFormData({ name: "", email: "", telephone: "", website: "", plan: "", message: "" });
       toast.success("Ďakujeme! Budeme ťa informovať.");
     },
     onError: (err) => {
@@ -101,22 +103,29 @@ export default function Home() {
                 Pomôže ti s textami, reklamami, vyhľadávaním a čoskoro aj s videami. Vyskúšaj zadarmo.
               </p>
               <div className="flex flex-wrap gap-3 mb-8">
-                <Button
-                  size="lg"
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
-                  onClick={() => scrollTo("contact")}
+                <a
+                  href="http://80.15.7.37:8888"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  Chcem vedieť viac
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-gray-200 text-gray-700 hover:bg-gray-50 px-6"
-                  onClick={() => scrollTo("features")}
-                >
-                  Pozri demo
-                </Button>
+                  <Button
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
+                  >
+                    <Bot className="w-4 h-4" />
+                    Pozri demo
+                  </Button>
+                </a>
+                <Link href="/agent">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-gray-200 text-gray-700 hover:bg-gray-50 px-6"
+                  >
+                    Chcem vedieť viac
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
               </div>
               <div className="flex items-center gap-6 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
@@ -340,7 +349,7 @@ export default function Home() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-sm font-medium text-gray-700">Meno a priezvisko *</Label>
+                      <Label htmlFor="name" className="text-sm font-medium text-gray-700">Meno a priezvisko</Label>
                       <Input
                         id="name"
                         placeholder="Ján Varga"
@@ -351,7 +360,7 @@ export default function Home() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email *</Label>
+                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                       <Input
                         id="email"
                         type="email"
@@ -365,22 +374,22 @@ export default function Home() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Telefónne číslo</Label>
+                      <Label htmlFor="telephone" className="text-sm font-medium text-gray-700">Telefónne číslo</Label>
                       <Input
-                        id="phone"
+                        id="telephone"
                         type="tel"
                         placeholder="+421 900 123 456"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        value={formData.telephone}
+                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                         className="border-gray-200"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="website" className="text-sm font-medium text-gray-700">Web stránka</Label>
+                      <Label htmlFor="website" className="text-sm font-medium text-gray-700">Web stránka <span className="text-gray-400">(voliteľné)</span></Label>
                       <Input
                         id="website"
                         type="url"
-                        placeholder="https://www.mojafirma.sk"
+                        placeholder="https://www.example.com"
                         value={formData.website}
                         onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                         className="border-gray-200"
@@ -388,12 +397,26 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
+                    <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
+                      <SelectTrigger className="border-gray-200">
+                        <SelectValue placeholder="Zatiaľ neviem" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unknown">Zatiaľ neviem</SelectItem>
+                        <SelectItem value="free">Free - Zadarmo</SelectItem>
+                        <SelectItem value="basic">Basic - 9€/mesiac</SelectItem>
+                        <SelectItem value="premium">Premium - 15€/mesiac</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="message" className="text-sm font-medium text-gray-700">
                       Poznámky <span className="text-gray-400">(voliteľné)</span>
                     </Label>
                     <Textarea
                       id="message"
-                      placeholder="Sem napíšte vaše poznámky alebo otázky..."
+                      placeholder="Napr. Potrebujem pomôcť s písaním marketingových textov..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       className="border-gray-200 resize-none"
@@ -408,7 +431,7 @@ export default function Home() {
                     {submitContact.isPending ? "Odosielam..." : "Chcem byť medzi prvými"}
                   </Button>
                   <p className="text-center text-xs text-gray-400">
-                    Tvoj email budeme používať len na informácie o Tvojton.online.
+                    Tvoj email a telefón budeme používať len na informácie o Tvojton.online.
                   </p>
                 </form>
               )}
