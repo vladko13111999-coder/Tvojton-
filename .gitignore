@@ -108,3 +108,7 @@ temp/
 # Webdev artifacts
 .webdev/
 .vercel
+
+# Allow specific env files
+!.env.production
+!client/.env.production
