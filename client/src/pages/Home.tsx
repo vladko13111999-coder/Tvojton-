@@ -77,10 +77,10 @@ export default function Home() {
               <button onClick={() => scrollTo("contact")} className="px-4 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium">Kontakt</button>
               <Link href="/blog" className="px-4 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium">Blog</Link>
             </div>
-            <Link href="/admin">
-              <Button variant="outline" size="sm" className="gap-2 border-gray-200">
+            <Link href="/agent">
+              <Button variant="default" size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
                 <Bot className="w-4 h-4" />
-                Admin
+                Vyskúšať agenta
               </Button>
             </Link>
           </div>
@@ -103,29 +103,24 @@ export default function Home() {
                 Pomôže ti s textami, reklamami, vyhľadávaním a čoskoro aj s videami. Vyskúšaj zadarmo.
               </p>
               <div className="flex flex-wrap gap-3 mb-8">
-                <a
-                  href="https://seo-christine-helping-designers.trycloudflare.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <Link href="/agent">
                   <Button
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
                   >
                     <Bot className="w-4 h-4" />
-                    Pozri demo
-                  </Button>
-                </a>
-                <Link href="/agent">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-gray-200 text-gray-700 hover:bg-gray-50 px-6"
-                  >
-                    Chcem vedieť viac
-                    <ArrowRight className="w-4 h-4" />
+                    Vyskúšať agenta
                   </Button>
                 </Link>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-gray-200 text-gray-700 hover:bg-gray-50 px-6"
+                  onClick={() => scrollTo("contact")}
+                >
+                  Chcem vedieť viac
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
               </div>
               <div className="flex items-center gap-6 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
