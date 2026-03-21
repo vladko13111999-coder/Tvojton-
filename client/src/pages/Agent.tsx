@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { AIChatBox, Message } from "@/components/AIChatBox";
 import { sendMessage, checkHealth } from "@/lib/agentApi";
-import { Bot, ArrowLeft, Loader2, Globe, Image, Video, Search, BarChart3, FileText, Send, X, Zap } from "lucide-react";
+import { Bot, ArrowLeft, Loader2, Globe, Image, Video, Search, FileText, Menu, X, Plus, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 
 type Feature = 'chat' | 'analyzer' | 'image' | 'video' | 'competitor' | 'marketing';
@@ -24,24 +24,25 @@ const FEATURES: FeatureCard[] = [
   { id: 'marketing', title: 'Marketing', description: 'FB, IG, blog obsah', icon: <FileText className="w-5 h-5" />, color: 'teal' },
 ];
 
-const COLOR_CLASSES: Record<string, { bg: string; text: string; border: string; hover: string; light: string }> = {
-  blue: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-200', hover: 'hover:bg-blue-50', light: 'bg-blue-100' },
-  green: { bg: 'bg-green-600', text: 'text-green-600', border: 'border-green-200', hover: 'hover:bg-green-50', light: 'bg-green-100' },
-  purple: { bg: 'bg-purple-600', text: 'text-purple-600', border: 'border-purple-200', hover: 'hover:bg-purple-50', light: 'bg-purple-100' },
-  red: { bg: 'bg-red-600', text: 'text-red-600', border: 'border-red-200', hover: 'hover:bg-red-50', light: 'bg-red-100' },
-  orange: { bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-200', hover: 'hover:bg-orange-50', light: 'bg-orange-100' },
-  teal: { bg: 'bg-teal-600', text: 'text-teal-600', border: 'border-teal-200', hover: 'hover:bg-teal-50', light: 'bg-teal-100' },
+const COLOR_CLASSES: Record<string, { bg: string; text: string; border: string; hover: string; light: string; bgHover: string }> = {
+  blue: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-200', hover: 'hover:bg-blue-50', light: 'bg-blue-100', bgHover: 'hover:bg-blue-500' },
+  green: { bg: 'bg-green-600', text: 'text-green-600', border: 'border-green-200', hover: 'hover:bg-green-50', light: 'bg-green-100', bgHover: 'hover:bg-green-500' },
+  purple: { bg: 'bg-purple-600', text: 'text-purple-600', border: 'border-purple-200', hover: 'hover:bg-purple-50', light: 'bg-purple-100', bgHover: 'hover:bg-purple-500' },
+  red: { bg: 'bg-red-600', text: 'text-red-600', border: 'border-red-200', hover: 'hover:bg-red-50', light: 'bg-red-100', bgHover: 'hover:bg-red-500' },
+  orange: { bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-200', hover: 'hover:bg-orange-50', light: 'bg-orange-100', bgHover: 'hover:bg-orange-500' },
+  teal: { bg: 'bg-teal-600', text: 'text-teal-600', border: 'border-teal-200', hover: 'hover:bg-teal-50', light: 'bg-teal-100', bgHover: 'hover:bg-teal-500' },
+};
+
+const INITIAL_MESSAGE: Message = {
+  role: "assistant",
+  content: "Dobrý deň! Som Tvojton AI, tvoj osobný asistent. Vyber si funkciu z ľavého panelu alebo mi rovno napíš!",
 };
 
 export default function Agent() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Dobrý deň! Som Tvojton AI, tvoj osobný asistent. Vyber si funkciu z ľavého panelu alebo mi rovno napíš!",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeFeature, setActiveFeature] = useState<Feature>('chat');
   const [urlInput, setUrlInput] = useState('');
   const [imagePrompt, setImagePrompt] = useState('');
@@ -61,6 +62,16 @@ export default function Agent() {
   useEffect(() => {
     checkConnection();
   }, [checkConnection]);
+
+  const handleNewChat = () => {
+    setMessages([INITIAL_MESSAGE]);
+    setUrlInput('');
+    setImagePrompt('');
+    setVideoUrl('');
+    setCompetitorUrl('');
+    setMarketingUrl('');
+    setActiveFeature('chat');
+  };
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = { role: "user", content };
@@ -149,29 +160,34 @@ export default function Agent() {
   };
 
   const renderFeaturePanel = () => {
-    const color = COLOR_CLASSES[FEATURES.find(f => f.id === activeFeature)?.color || 'blue'];
+    const feature = FEATURES.find(f => f.id === activeFeature);
+    if (!feature) return null;
+    const color = COLOR_CLASSES[feature.color];
 
     switch (activeFeature) {
       case 'analyzer':
         return (
           <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text}`}>Analyzátor URL</h3>
-            <p className="text-sm text-gray-600">Zadaj URL adresu a AI analyzuje obsah, produkt, ceny a ďalšie.</p>
-            <div className="flex gap-2">
+            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
+              {feature.icon}
+              {feature.title}
+            </h3>
+            <p className="text-sm text-gray-600">Zadaj URL adresu a AI analyzuje obsah, produkt, ceny.</p>
+            <div className="flex flex-col gap-2">
               <input
                 type="url"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder="https://example.com/produkt"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 onClick={runAnalyzer}
                 disabled={isLoading}
-                className={`${color.bg} text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50`}
+                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                Analýza
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                Spustiť analýzu
               </button>
             </div>
           </div>
@@ -180,46 +196,54 @@ export default function Agent() {
       case 'image':
         return (
           <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text}`}>Generátor obrázkov</h3>
-            <p className="text-sm text-gray-600">Popíš obrázok, ktorý chceš vygenerovať pomocou AI.</p>
-            <textarea
-              value={imagePrompt}
-              onChange={(e) => setImagePrompt(e.target.value)}
-              placeholder="Napíš popis obrázka..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-            <button
-              onClick={runImageGenerator}
-              disabled={isLoading}
-              className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50`}
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
-              Generuj obrázok
-            </button>
+            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
+              {feature.icon}
+              {feature.title}
+            </h3>
+            <p className="text-sm text-gray-600">Popíš obrázok, ktorý chceš vygenerovať.</p>
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                placeholder="Napíš popis obrázka..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+              <button
+                onClick={runImageGenerator}
+                disabled={isLoading}
+                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
+                Generuj obrázok
+              </button>
+            </div>
           </div>
         );
 
       case 'video':
         return (
           <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text}`}>Generátor videí</h3>
+            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
+              {feature.icon}
+              {feature.title}
+            </h3>
             <p className="text-sm text-gray-600">Zadaj URL produktu a AI vytvorí video reklamu.</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <input
                 type="url"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://example.com/produkt"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
               <button
                 onClick={runVideoGenerator}
                 disabled={isLoading}
-                className={`${color.bg} text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50`}
+                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                Video
+                Vytvor video
               </button>
             </div>
           </div>
@@ -228,23 +252,26 @@ export default function Agent() {
       case 'competitor':
         return (
           <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text}`}>Konkurenčná analýza</h3>
-            <p className="text-sm text-gray-600">Analyzuj web konkurenta a zisti ich silné a slabé stránky.</p>
-            <div className="flex gap-2">
+            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
+              {feature.icon}
+              {feature.title}
+            </h3>
+            <p className="text-sm text-gray-600">Analyzuj web konkurenta a zisti ich silné stránky.</p>
+            <div className="flex flex-col gap-2">
               <input
                 type="url"
                 value={competitorUrl}
                 onChange={(e) => setCompetitorUrl(e.target.value)}
                 placeholder="https://konkurent.sk"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
               <button
                 onClick={runCompetitorAnalysis}
                 disabled={isLoading}
-                className={`${color.bg} text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50`}
+                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                Analýza
+                Analyzovať konkurenta
               </button>
             </div>
           </div>
@@ -253,40 +280,45 @@ export default function Agent() {
       case 'marketing':
         return (
           <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text}`}>Marketingové materiály</h3>
-            <p className="text-sm text-gray-600">Vytvor obsah pre Facebook, Instagram, blog a SEO.</p>
-            <input
-              type="url"
-              value={marketingUrl}
-              onChange={(e) => setMarketingUrl(e.target.value)}
-              placeholder="https://example.com/produkt"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            />
-            <select
-              value={marketingLang}
-              onChange={(e) => setMarketingLang(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            >
-              <option value="sk">Slovenčina</option>
-              <option value="cs">Čeština</option>
-              <option value="en">English</option>
-            </select>
-            <button
-              onClick={runMarketing}
-              disabled={isLoading}
-              className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50`}
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              Generuj marketing
-            </button>
+            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
+              {feature.icon}
+              {feature.title}
+            </h3>
+            <p className="text-sm text-gray-600">Vytvor obsah pre Facebook, Instagram, blog.</p>
+            <div className="flex flex-col gap-3">
+              <input
+                type="url"
+                value={marketingUrl}
+                onChange={(e) => setMarketingUrl(e.target.value)}
+                placeholder="https://example.com/produkt"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+              <select
+                value={marketingLang}
+                onChange={(e) => setMarketingLang(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              >
+                <option value="sk">Slovenčina</option>
+                <option value="cs">Čeština</option>
+                <option value="en">English</option>
+              </select>
+              <button
+                onClick={runMarketing}
+                disabled={isLoading}
+                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Generuj marketing
+              </button>
+            </div>
           </div>
         );
 
       default:
         return (
           <div className="text-center py-8">
-            <Bot className={`w-12 h-12 ${color.text} mx-auto mb-4`} />
-            <p className="text-gray-600">Vyber si funkciu z ľavého panelu alebo napíš správu.</p>
+            <Bot className={`w-12 h-12 ${color.text} mx-auto mb-4 opacity-50`} />
+            <p className="text-gray-600 text-sm">Vyber si funkciu z ľavého panelu alebo napíš správu.</p>
           </div>
         );
     }
@@ -294,58 +326,90 @@ export default function Agent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
-      {/* Left Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-bold text-gray-900 flex items-center gap-2">
-            <Bot className="w-5 h-5 text-blue-600" />
-            Tvojton AI
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">Brand Twin Agent</p>
-        </div>
-        
-        <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
-          {FEATURES.map((feature) => {
-            const color = COLOR_CLASSES[feature.color];
-            const isActive = activeFeature === feature.id;
-            return (
-              <button
-                key={feature.id}
-                onClick={() => handleFeatureAction(feature.id)}
-                className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${
-                  isActive 
-                    ? `${color.light} ${color.text} border ${color.border}` 
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <span className={isActive ? color.text : 'text-gray-500'}>{feature.icon}</span>
-                <div className="text-left">
-                  <p className={`font-medium text-sm ${isActive ? color.text : ''}`}>{feature.title}</p>
-                  <p className="text-xs text-gray-500">{feature.description}</p>
-                </div>
-              </button>
-            );
-          })}
-        </nav>
+      {/* Sidebar */}
+      <aside 
+        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${
+          sidebarOpen ? 'w-64' : 'w-0'
+        } overflow-hidden`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <Bot className="w-5 h-5 text-blue-600" />
+              <span className={sidebarOpen ? 'opacity-100' : 'opacity-0'}>Tvojton AI</span>
+            </h2>
+          </div>
+          
+          {/* New Chat Button */}
+          <div className={`p-3 border-b border-gray-200 ${sidebarOpen ? '' : 'hidden'}`}>
+            <button
+              onClick={handleNewChat}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-200"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="font-medium">Nový chat</span>
+            </button>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+            {FEATURES.map((feature) => {
+              const color = COLOR_CLASSES[feature.color];
+              const isActive = activeFeature === feature.id;
+              return (
+                <button
+                  key={feature.id}
+                  onClick={() => handleFeatureAction(feature.id)}
+                  className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${
+                    isActive 
+                      ? `${color.light} ${color.text} border ${color.border}` 
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <span className={isActive ? color.text : 'text-gray-500'}>{feature.icon}</span>
+                  <div className={`text-left transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0'} whitespace-nowrap`}>
+                    <p className={`font-medium text-sm ${isActive ? color.text : ''}`}>{feature.title}</p>
+                    <p className="text-xs text-gray-500">{feature.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
 
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            {isOnline === null ? (
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-            ) : isOnline ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs text-gray-500">Online</span>
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-red-500" />
-                <span className="text-xs text-gray-500">Offline</span>
-              </>
-            )}
+          {/* Status */}
+          <div className={`p-4 border-t border-gray-200 ${sidebarOpen ? '' : 'hidden'}`}>
+            <div className="flex items-center gap-2">
+              {isOnline === null ? (
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              ) : isOnline ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-xs text-gray-500">Online</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-xs text-gray-500">Offline</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </aside>
+
+      {/* Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="absolute left-0 top-20 z-10 bg-white border border-gray-200 rounded-r-lg p-2 shadow-md hover:bg-gray-50 transition-colors"
+        style={{ left: sidebarOpen ? '256px' : '0px' }}
+      >
+        {sidebarOpen ? (
+          <ChevronLeft className="w-4 h-4 text-gray-600" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-gray-600" />
+        )}
+      </button>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -375,14 +439,30 @@ export default function Agent() {
                 </div>
               </div>
 
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                  T
-                </div>
-                <span className="font-semibold text-gray-900 hidden sm:block">
-                  tvojton.online
-                </span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleNewChat}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Nový chat"
+                >
+                  <Plus className="w-5 h-5 text-gray-600" />
+                </button>
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
+                  title={sidebarOpen ? 'Skryť panel' : 'Zobraziť panel'}
+                >
+                  <Menu className="w-5 h-5 text-gray-600" />
+                </button>
+                <Link href="/" className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                    T
+                  </div>
+                  <span className="font-semibold text-gray-900 hidden sm:block">
+                    tvojton.online
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </header>
@@ -390,7 +470,7 @@ export default function Agent() {
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Feature Panel */}
-          <div className="w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto">
+          <div className={`w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto transition-all duration-300 ${sidebarOpen ? '' : 'hidden'}`}>
             {renderFeaturePanel()}
           </div>
 
