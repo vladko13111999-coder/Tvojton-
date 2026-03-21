@@ -42,7 +42,7 @@ export default function Agent() {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState<Feature>('chat');
   const [urlInput, setUrlInput] = useState('');
   const [imagePrompt, setImagePrompt] = useState('');
@@ -451,10 +451,10 @@ export default function Agent() {
                 </button>
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   title={sidebarOpen ? 'Skryť panel' : 'Zobraziť panel'}
                 >
-                  <Menu className="w-5 h-5 text-gray-600" />
+                  {sidebarOpen ? <X className="w-5 h-5 text-gray-600" /> : <Menu className="w-5 h-5 text-gray-600" />}
                 </button>
                 <Link href="/" className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
@@ -470,9 +470,9 @@ export default function Agent() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           {/* Feature Panel */}
-          <div className={`w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto transition-all duration-300 ${sidebarOpen ? '' : 'hidden'}`}>
+          <div className={`absolute lg:relative z-10 w-80 h-full bg-white border-r border-gray-200 p-4 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:hidden'}`}>
             {renderFeaturePanel()}
           </div>
 
