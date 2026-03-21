@@ -2,12 +2,5 @@
   "version": 2,
   "buildCommand": "pnpm install && pnpm build",
   "outputDirectory": "dist/public",
-  "installCommand": "pnpm install",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
+  "framework": "vite"
 }
