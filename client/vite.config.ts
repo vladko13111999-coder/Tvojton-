@@ -11,8 +11,9 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "..", "shared"),
     },
   },
+  root: ".",
   build: {
-    outDir: "../../dist",
+    outDir: "dist",
     emptyOutDir: true,
   },
 });
