@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ii5nrun0ci2ahz-7777.proxy.runpod.net';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://invision-mistakes-influence-verbal.trycloudflare.com';
 
 export interface QueryResponse {
   answer?: string;
