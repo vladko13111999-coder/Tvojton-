@@ -1,195 +1,243 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Bot, ArrowLeft, ExternalLink, Sparkles } from "lucide-react";
+import { Bot, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://i5nrun-ci2ahz-7777.proxy.runpod.net';
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const SUGGESTED_PROMPTS = [
+  "Ahoj! Ako sa máš?",
+  "Napíš krátky blog o SEO optimalizácii",
+  "Pomôž mi s reklamáciou produktu",
+  "Aké sú výhody dropshippingu?",
+];
 
 export default function Agent() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    telephone: "",
-    website: "",
-    plan: "",
-    message: "",
-  });
-  const [formSubmitted, setFormSubmitted] = useState(false);
-
-  const submitContact = trpc.contact.submit.useMutation({
-    onSuccess: () => {
-      setFormSubmitted(true);
-      setFormData({ name: "", email: "", telephone: "", website: "", plan: "", message: "" });
-      toast.success("Ďakujeme! Budeme ťa informovať.");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Dobrý deň! Som Tvojton AI, tvoj osobný asistent. Ako ti dnes môžem pomôcť?",
     },
-    onError: (err) => {
-      toast.error("Nastala chyba. Skús to znova.");
-    },
-  });
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email) {
-      toast.error("Vyplň meno a email.");
-      return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const checkHealth = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      setIsOnline(response.ok);
+      if (!response.ok) {
+        toast.error("AI agent nie je online. Skontroluj pripojenie.");
+      }
+    } catch {
+      setIsOnline(false);
+      toast.error("Nedá sa pripojiť k AI agentovi.");
     }
-    submitContact.mutate(formData);
+  }, []);
+
+  useEffect(() => {
+    checkHealth();
+  }, [checkHealth]);
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: "user", content: input.trim() };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: userMessage.content }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: data.answer || data.reasoning || "Odpoveď nie je dostupná.",
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `Ups, nastala chyba: ${error instanceof Error ? error.message : "Neošetrená chyba"}. Skús to znova.`,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleSuggestedPrompt = (prompt: string) => {
+    setInput(prompt);
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Späť na hlavnú stránku
-          </Link>
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Späť</span>
+            </Link>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
+                <Bot className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-gray-900">Tvojton AI</h1>
+                <div className="flex items-center gap-1.5">
+                  {isOnline === null ? (
+                    <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  ) : isOnline ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-xs text-gray-500">Online</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-xs text-gray-500">Offline</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                T
+              </div>
+              <span className="font-semibold text-gray-900 hidden sm:block">
+                tvojton.online
+              </span>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-12">
-        {/* Agent Status */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Bot className="w-10 h-10 text-green-600" />
-          </div>
-          <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium mb-4 border border-green-100">
-            <Sparkles className="w-4 h-4" />
-            AI agent je pripravený
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Tvoj AI agent je online!
-          </h1>
-          <p className="text-lg text-gray-600 mb-6">
-            Prepnúť na plnú verziu alebo nám zanechaj kontakt pre bližšie informácie.
-          </p>
-          <Button
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
-            onClick={() => window.open("https://seo-christine-helping-designers.trycloudflare.com", "_blank")}
-          >
-            <ExternalLink className="w-4 h-4" />
-            Otvoriť agenta v novom okne
-          </Button>
-        </div>
-
-        {/* Contact Form */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Zaujíma ťa plná verzia?
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Zanechaj nám kontakt a ozveme sa ti s bližšími informáciami
-            </p>
-          </div>
-          
-          {formSubmitted ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Ďakujeme za registráciu!</h3>
-              <p className="text-gray-600">Budeme ťa informovať o všetkom.</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Meno a priezvisko</Label>
-                  <Input
-                    id="name"
-                    placeholder="Ján Varga"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="border-gray-200"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="jan@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="border-gray-200"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="telephone" className="text-sm font-medium text-gray-700">Telefónne číslo</Label>
-                  <Input
-                    id="telephone"
-                    type="tel"
-                    placeholder="+421 900 123 456"
-                    value={formData.telephone}
-                    onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                    className="border-gray-200"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="website" className="text-sm font-medium text-gray-700">Web stránka <span className="text-gray-400">(voliteľné)</span></Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    placeholder="https://www.example.com"
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className="border-gray-200"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
-                <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
-                  <SelectTrigger className="border-gray-200">
-                    <SelectValue placeholder="Zatiaľ neviem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unknown">Zatiaľ neviem</SelectItem>
-                    <SelectItem value="free">Free - Zadarmo</SelectItem>
-                    <SelectItem value="basic">Basic - 9€/mesiac</SelectItem>
-                    <SelectItem value="premium">Premium - 15€/mesiac</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="message" className="text-sm font-medium text-gray-700">
-                  Poznámky <span className="text-gray-400">(voliteľné)</span>
-                </Label>
-                <Textarea
-                  id="message"
-                  placeholder="Napr. Potrebujem pomôcť s písaním marketingových textov..."
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="border-gray-200 resize-none"
-                  rows={3}
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11"
-                disabled={submitContact.isPending}
+      {/* Chat Area */}
+      <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xl h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                {submitContact.isPending ? "Odosielam..." : "Zaujíma ma plná verzia"}
-              </Button>
-              <p className="text-center text-xs text-gray-400">
-                Tvoj email a telefón budeme používať len na informácie o Tvojton.online.
-              </p>
-            </form>
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    message.role === "user"
+                      ? "bg-blue-600 text-white rounded-br-md"
+                      : "bg-gray-100 text-gray-900 rounded-bl-md"
+                  }`}
+                >
+                  {message.role === "assistant" && (
+                    <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                      <Bot className="w-4 h-4" />
+                      <span>Tvojton AI</span>
+                    </div>
+                  )}
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Bot className="w-4 h-4 animate-pulse" />
+                    <span>Premýšľam...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Suggested Prompts */}
+          {messages.length === 1 && (
+            <div className="px-4 pb-2">
+              <p className="text-xs text-gray-500 mb-2">Rýchle otázky:</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_PROMPTS.map((prompt, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSuggestedPrompt(prompt)}
+                    className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
+
+          {/* Input */}
+          <div className="border-t border-gray-100 p-4 bg-gray-50">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Napíš správu..."
+                disabled={isLoading}
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!input.trim() || isLoading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? "..." : "Odoslať"}
+              </button>
+            </div>
+          </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="py-4 text-center text-sm text-gray-500">
+        <p>Tvojton AI — Tvoj osobný AI asistent pre podnikanie</p>
+      </footer>
     </div>
   );
 }
