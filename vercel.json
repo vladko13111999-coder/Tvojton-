@@ -10,6 +10,7 @@
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/client/$1" }
+    { "src": "/(.*)", "dest": "/client/$1", "status": 200 },
+    { "src": "/(.*)", "dest": "/client/index.html", "status": 200 }
   ]
 }
