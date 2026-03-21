@@ -92,6 +92,7 @@ export default function Agent() {
           role: "assistant",
           content: response.answer || response.reasoning || "Odpoveď nie je dostupná.",
           image_base64: response.image_base64,
+          video_base64: response.video_base64,
         };
         setMessages((prev) => [...prev, assistantMessage]);
       }

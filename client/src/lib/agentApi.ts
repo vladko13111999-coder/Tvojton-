@@ -7,6 +7,7 @@ export interface QueryResponse {
   agent?: string;
   language?: string;
   image_base64?: string;
+  video_base64?: string;
 }
 
 export async function sendMessage(query: string): Promise<QueryResponse> {

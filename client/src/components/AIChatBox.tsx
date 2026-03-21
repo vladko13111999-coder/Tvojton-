@@ -13,6 +13,7 @@ export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
   image_base64?: string;
+  video_base64?: string;
 };
 
 export type AIChatBoxProps = {
@@ -270,6 +271,14 @@ export function AIChatBox({
                               alt="Vygenerovaný obrázok"
                               className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
                               style={{ maxHeight: '400px', objectFit: 'contain' }}
+                            />
+                          )}
+                          {message.video_base64 && (
+                            <video 
+                              src={`data:video/mp4;base64,${message.video_base64}`}
+                              controls
+                              className="mt-3 rounded-lg max-w-full"
+                              style={{ maxHeight: '400px' }}
                             />
                           )}
                         </div>
