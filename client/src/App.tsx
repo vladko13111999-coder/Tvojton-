@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Admin from "./pages/Admin";
+import Agent from "./pages/Agent";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/admin" component={Admin} />
+      <Route path="/agent" component={Agent} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
