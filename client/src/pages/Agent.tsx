@@ -91,6 +91,7 @@ export default function Agent() {
         const assistantMessage: Message = {
           role: "assistant",
           content: response.answer || response.reasoning || "Odpoveď nie je dostupná.",
+          image_base64: response.image_base64,
         };
         setMessages((prev) => [...prev, assistantMessage]);
       }

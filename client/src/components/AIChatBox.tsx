@@ -12,6 +12,7 @@ import { Streamdown } from "streamdown";
 export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
+  image_base64?: string;
 };
 
 export type AIChatBoxProps = {
@@ -263,6 +264,14 @@ export function AIChatBox({
                       {message.role === "assistant" ? (
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <Streamdown>{message.content}</Streamdown>
+                          {message.image_base64 && (
+                            <img 
+                              src={`data:image/png;base64,${message.image_base64}`}
+                              alt="Vygenerovaný obrázok"
+                              className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{ maxHeight: '400px', objectFit: 'contain' }}
+                            />
+                          )}
                         </div>
                       ) : (
                         <p className="whitespace-pre-wrap text-sm">
