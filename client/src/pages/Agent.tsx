@@ -57,14 +57,25 @@ export default function Agent() {
   const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      scrollToBottom();
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   const checkHealth = useCallback(async () => {
     try {
@@ -312,7 +323,7 @@ export default function Agent() {
       <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl">
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xl h-[calc(100vh-200px)] flex flex-col overflow-hidden">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
             {messages.map((message, index) => (
               <div key={index}>
                 <div
