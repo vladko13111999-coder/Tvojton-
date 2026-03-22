@@ -148,6 +148,7 @@ export default function Agent() {
                   }
                   return updated;
                 });
+                setExpandedThoughts((prev) => new Set([...prev, messageIndex]));
               }
               
               if (event.type === "done") {
@@ -272,7 +273,10 @@ export default function Agent() {
                     )}
                     
                     {/* Message content */}
-                    <p className="whitespace-pre-wrap break-words" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                    <p 
+                      className="whitespace-pre-wrap break-words max-h-64 overflow-y-auto"
+                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                    >
                       {message.content}
                     </p>
                     
@@ -299,28 +303,37 @@ export default function Agent() {
                 </div>
                 
                 {/* Thoughts section - only for assistant messages */}
-                {message.role === "assistant" && message.thoughts && message.thoughts.length > 0 && (
+                {(message.role === "assistant" && (message.thoughts?.length ?? 0) > 0) && (
                   <div className="mt-2 ml-4 max-w-[85%]">
-                    <button
-                      onClick={() => toggleThoughts(index)}
-                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors"
-                    >
-                      {expandedThoughts.has(index) ? (
-                        <ChevronUp className="w-3 h-3" />
-                      ) : (
+                    {!expandedThoughts.has(index) && (
+                      <button
+                        onClick={() => toggleThoughts(index)}
+                        className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors bg-blue-50 px-2 py-1 rounded-full"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>Zobraziť myšlienkový postup ({message.thoughts.length})</span>
                         <ChevronDown className="w-3 h-3" />
-                      )}
-                      <Sparkles className="w-3 h-3" />
-                      <span>Zobraziť myšlienkový postup</span>
-                    </button>
+                      </button>
+                    )}
                     
                     {expandedThoughts.has(index) && (
-                      <div className="mt-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                        <h4 className="text-xs font-medium text-gray-500 mb-2">Ako som na to prišiel:</h4>
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Myšlienkový postup
+                          </h4>
+                          <button
+                            onClick={() => toggleThoughts(index)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </button>
+                        </div>
                         <ul className="space-y-1.5">
                           {message.thoughts.map((thought, thoughtIndex) => (
-                            <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-600">
-                              <span className="text-blue-400 mt-0.5 shrink-0">•</span>
+                            <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
+                              <span className="text-blue-500 mt-0.5 shrink-0">•</span>
                               <span className="break-words">
                                 {thought.step}
                                 {thought.brand && (
@@ -344,11 +357,19 @@ export default function Agent() {
               </div>
             ))}
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Bot className="w-4 h-4 animate-pulse" />
-                    <span>Premýšľam...</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <Bot className="w-4 h-4 animate-pulse" />
+                      <span>Premýšľam...</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <div className="flex items-center gap-2 text-xs text-blue-500 bg-blue-50 px-3 py-2 rounded-lg inline-flex">
+                    <Sparkles className="w-3 h-3 animate-pulse" />
+                    <span>Získavam myšlienkový postup...</span>
                   </div>
                 </div>
               </div>
