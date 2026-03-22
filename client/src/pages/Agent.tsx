@@ -183,18 +183,19 @@ export default function Agent() {
       <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl">
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xl h-[calc(100vh-200px)] flex flex-col overflow-hidden">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
             {messages.map((message, index) => (
               <div key={index}>
                 <div
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 break-words ${
                       message.role === "user"
                         ? "bg-blue-600 text-white rounded-br-md"
                         : "bg-gray-100 text-gray-900 rounded-bl-md"
                     }`}
+                    style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
                   >
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
@@ -204,7 +205,9 @@ export default function Agent() {
                     )}
                     
                     {/* Message content */}
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                      {message.content}
+                    </p>
                     
                     {/* Image */}
                     {message.image_base64 && (
@@ -230,7 +233,7 @@ export default function Agent() {
                 
                 {/* Thoughts section - only for assistant messages */}
                 {message.role === "assistant" && message.thoughts && message.thoughts.length > 0 && (
-                  <div className="mt-2 ml-4">
+                  <div className="mt-2 ml-4 max-w-[85%]">
                     <button
                       onClick={() => toggleThoughts(index)}
                       className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors"
@@ -250,8 +253,8 @@ export default function Agent() {
                         <ul className="space-y-1.5">
                           {message.thoughts.map((thought, thoughtIndex) => (
                             <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-600">
-                              <span className="text-blue-400 mt-0.5">•</span>
-                              <span>
+                              <span className="text-blue-400 mt-0.5 shrink-0">•</span>
+                              <span className="break-words">
                                 {thought.step}
                                 {thought.brand && (
                                   <span className="ml-1 text-blue-600 font-medium">
