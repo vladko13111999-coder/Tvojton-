@@ -59,16 +59,10 @@ export default function Agent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
-      }
-    });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const checkHealth = useCallback(async () => {
@@ -134,8 +128,6 @@ export default function Agent() {
 
       const decoder = new TextDecoder();
       let buffer = "";
-      let updateCounter = 0;
-      let accumulatedText = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -151,64 +143,27 @@ export default function Agent() {
               const event = JSON.parse(line.slice(6));
               
               if (event.type === "chunk") {
-                accumulatedText += event.data;
-                updateCounter++;
-                
-                if (updateCounter >= 3) {
-                  setMessages((prev) => {
-                    const updated = [...prev];
-                    if (updated[assistantIndex]) {
-                      updated[assistantIndex] = {
-                        ...updated[assistantIndex],
-                        content: accumulatedText,
-                      };
-                    }
-                    return updated;
-                  });
-                  scrollToBottom();
-                  updateCounter = 0;
-                }
+                setMessages((prev) => prev.map((msg, i) => 
+                  i === assistantIndex ? { ...msg, content: msg.content + event.data } : msg
+                ));
               }
               
               if (event.type === "thoughts") {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  if (updated[assistantIndex]) {
-                    updated[assistantIndex] = {
-                      ...updated[assistantIndex],
-                      thoughts: event.data,
-                    };
-                  }
-                  return updated;
-                });
-                scrollToBottom();
+                setMessages((prev) => prev.map((msg, i) => 
+                  i === assistantIndex ? { ...msg, thoughts: event.data } : msg
+                ));
               }
               
               if (event.type === "image") {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  if (updated[assistantIndex]) {
-                    updated[assistantIndex] = {
-                      ...updated[assistantIndex],
-                      image_base64: event.image_base64,
-                    };
-                  }
-                  return updated;
-                });
+                setMessages((prev) => prev.map((msg, i) => 
+                  i === assistantIndex ? { ...msg, image_base64: event.image_base64 } : msg
+                ));
               }
               
               if (event.type === "done") {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  if (updated[assistantIndex]) {
-                    updated[assistantIndex] = {
-                      ...updated[assistantIndex],
-                      content: event.full_answer || updated[assistantIndex].content,
-                      thoughts: event.thoughts || [],
-                    };
-                  }
-                  return updated;
-                });
+                setMessages((prev) => prev.map((msg, i) => 
+                  i === assistantIndex ? { ...msg, content: event.full_answer || msg.content, thoughts: event.thoughts || [] } : msg
+                ));
               }
             } catch (e) {
               console.error("Parse error:", e);
