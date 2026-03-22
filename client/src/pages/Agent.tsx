@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Bot, ArrowLeft, ChevronDown, Sparkles, Image, Search, Video, FileText, Globe } from "lucide-react";
+import { Bot, ArrowLeft, ChevronDown, Sparkles, Image, Search, Video, FileText, Globe, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://37gt7a0hmcbdqm-7777.proxy.runpod.net';
@@ -39,9 +39,9 @@ const MODELS: ModelOption[] = [
 const QUICK_ACTIONS = [
   { icon: Image, label: "Obrázok", prefix: "Vygeneruj obrázok: " },
   { icon: Search, label: "Konkurencia", prefix: "Analyzuj konkurenciu: " },
-  { icon: Video, label: "Video", prefix: "Sprav video: " },
   { icon: FileText, label: "SEO blog", prefix: "Napíš SEO blog o: " },
   { icon: Globe, label: "Analýza URL", prefix: "Analyzuj web: " },
+  { icon: Wand2, label: "Nový Skill", prefix: "Vytvor skill na: " },
 ];
 
 export default function Agent() {
