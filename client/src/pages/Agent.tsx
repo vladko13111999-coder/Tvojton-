@@ -94,11 +94,17 @@ export default function Agent() {
     setMessages((prev) => [...prev, assistantMessage]);
     const messageIndex = messages.length;
 
+    // Get last 10 messages for context (excluding the current assistant message)
+    const historyMessages = messages.slice(-10);
+
     try {
       const response = await fetch(`${API_BASE_URL}/stream-query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMessage.content }),
+        body: JSON.stringify({ 
+          query: userMessage.content,
+          history: historyMessages 
+        }),
       });
 
       if (!response.ok) {
@@ -302,36 +308,40 @@ export default function Agent() {
                   </div>
                 </div>
                 
-                {/* Thoughts section - only for assistant messages */}
-                {(message.role === "assistant" && (message.thoughts?.length ?? 0) > 0) && (
+                {/* Thoughts section - always visible for assistant messages */}
+                {message.role === "assistant" && (
                   <div className="mt-2 ml-4 max-w-[85%]">
-                    {!expandedThoughts.has(index) && (
-                      <button
-                        onClick={() => toggleThoughts(index)}
-                        className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors bg-blue-50 px-2 py-1 rounded-full"
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        <span>Zobraziť myšlienkový postup ({message.thoughts.length})</span>
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                    )}
+                    {/* Model info badge */}
+                    <div className="inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full mb-2">
+                      <Bot className="w-3 h-3" />
+                      <span>Twin Pro</span>
+                    </div>
                     
-                    {expandedThoughts.has(index) && (
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-xs font-medium text-blue-700 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            Myšlienkový postup
-                          </h4>
-                          <button
-                            onClick={() => toggleThoughts(index)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
+                    {/* Thoughts toggle */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Myšlienkový postup
+                          {message.thoughts && message.thoughts.length > 0 && (
+                            <span className="ml-1 text-gray-400">({message.thoughts.length})</span>
+                          )}
+                        </h4>
+                        <button
+                          onClick={() => toggleThoughts(index)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          {expandedThoughts.has(index) ? (
                             <ChevronUp className="w-3 h-3" />
-                          </button>
-                        </div>
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      {expandedThoughts.has(index) ? (
                         <ul className="space-y-1.5">
-                          {message.thoughts.map((thought, thoughtIndex) => (
+                          {message.thoughts && message.thoughts.map((thought, thoughtIndex) => (
                             <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
                               <span className="text-blue-500 mt-0.5 shrink-0">•</span>
                               <span className="break-words">
@@ -350,8 +360,14 @@ export default function Agent() {
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">
+                          {message.thoughts && message.thoughts.length > 0 
+                            ? "Klikni pre detaily..." 
+                            : "Načítavam..."}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -359,17 +375,27 @@ export default function Agent() {
             {isLoading && (
               <div className="flex flex-col gap-2">
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 max-w-[85%]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bot className="w-4 h-4 animate-pulse text-blue-500" />
+                      <span className="text-sm font-medium text-gray-700">Twin Pro</span>
+                    </div>
                     <div className="flex items-center gap-2 text-gray-500">
-                      <Bot className="w-4 h-4 animate-pulse" />
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                      </div>
                       <span>Premýšľam...</span>
                     </div>
                   </div>
                 </div>
-                <div className="ml-4">
-                  <div className="flex items-center gap-2 text-xs text-blue-500 bg-blue-50 px-3 py-2 rounded-lg inline-flex">
-                    <Sparkles className="w-3 h-3 animate-pulse" />
-                    <span>Získavam myšlienkový postup...</span>
+                <div className="ml-4 max-w-[85%]">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                    <div className="flex items-center gap-2 text-xs text-blue-600">
+                      <Sparkles className="w-3 h-3 animate-pulse" />
+                      <span>Získavam myšlienkový postup...</span>
+                    </div>
                   </div>
                 </div>
               </div>
