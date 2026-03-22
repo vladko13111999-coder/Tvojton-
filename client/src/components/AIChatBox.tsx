@@ -12,8 +12,6 @@ import { Streamdown } from "streamdown";
 export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
-  image_base64?: string;
-  video_base64?: string;
 };
 
 export type AIChatBoxProps = {
@@ -225,7 +223,7 @@ export function AIChatBox({
             </div>
           </div>
         ) : (
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full overflow-y-auto">
             <div className="flex flex-col space-y-4 p-4">
               {displayMessages.map((message, index) => {
                 // Apply min-height to last message only if NOT loading (when loading, the loading indicator gets it)
@@ -256,15 +254,16 @@ export function AIChatBox({
 
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2.5",
+                        "max-w-[80%] rounded-lg px-4 py-2.5 break-words overflow-wrap-anywhere",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-foreground"
                       )}
+                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
                     >
                       {message.role === "assistant" ? (
                         <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <Streamdown>{message.content}</Streamdown>
+                          <div className="whitespace-pre-wrap break-words">{message.content}</div>
                           {message.image_base64 && (
                             <img 
                               src={`data:image/png;base64,${message.image_base64}`}
@@ -274,16 +273,16 @@ export function AIChatBox({
                             />
                           )}
                           {message.video_base64 && (
-                            <video 
-                              src={`data:video/mp4;base64,${message.video_base64}`}
-                              controls
-                              className="mt-3 rounded-lg max-w-full"
-                              style={{ maxHeight: '400px' }}
+                            <img 
+                              src={`data:image/gif;base64,${message.video_base64}`}
+                              alt="Vygenerované video"
+                              className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{ maxHeight: '400px', objectFit: 'contain' }}
                             />
                           )}
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap text-sm">
+                        <p className="whitespace-pre-wrap text-sm break-words" style={{ wordBreak: 'break-word' }}>
                           {message.content}
                         </p>
                       )}

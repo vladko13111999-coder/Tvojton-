@@ -32,6 +32,8 @@ const contactRouter = router({
       z.object({
         name: z.string().min(1).max(255),
         email: z.string().email().max(320),
+        telephone: z.string().max(64).optional(),
+        website: z.string().url().max(255).optional().or(z.literal("")),
         plan: z.string().optional(),
         message: z.string().max(2000).optional(),
       })
@@ -41,6 +43,8 @@ const contactRouter = router({
       await createContactSubmission({
         name: input.name,
         email: input.email,
+        telephone: input.telephone || null,
+        website: input.website || null,
         plan: input.plan,
         message: input.message,
         emailSent: false,
@@ -50,6 +54,8 @@ const contactRouter = router({
       const emailSent = await sendContactNotification({
         name: input.name,
         email: input.email,
+        telephone: input.telephone,
+        website: input.website,
         plan: input.plan,
         message: input.message,
       });

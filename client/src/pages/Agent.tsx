@@ -1,500 +1,455 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { AIChatBox, Message } from "@/components/AIChatBox";
-import { sendMessage, checkHealth } from "@/lib/agentApi";
-import { Bot, ArrowLeft, Loader2, Globe, Image, Video, Search, FileText, Menu, X, Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Bot, ArrowLeft, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-type Feature = 'chat' | 'analyzer' | 'image' | 'video' | 'competitor' | 'marketing';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://i5nrun-ci2ahz-7777.proxy.runpod.net';
 
-interface FeatureCard {
-  id: Feature;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
+interface Thought {
+  step: string;
+  timestamp: string;
+  model?: string;
+  brand?: string;
+  details?: string;
 }
 
-const FEATURES: FeatureCard[] = [
-  { id: 'chat', title: 'Chat', description: 'Konverzácia s AI', icon: <Bot className="w-5 h-5" />, color: 'blue' },
-  { id: 'analyzer', title: 'Analyzátor URL', description: 'Analýza webovej stránky', icon: <Globe className="w-5 h-5" />, color: 'green' },
-  { id: 'image', title: 'Generátor obrázkov', description: 'Vytvorenie obrázkov', icon: <Image className="w-5 h-5" />, color: 'purple' },
-  { id: 'video', title: 'Generátor videí', description: 'Vytvorenie videospotu', icon: <Video className="w-5 h-5" />, color: 'red' },
-  { id: 'competitor', title: 'Konkurenčná analýza', description: 'Analýza konkurencie', icon: <Search className="w-5 h-5" />, color: 'orange' },
-  { id: 'marketing', title: 'Marketing', description: 'FB, IG, blog obsah', icon: <FileText className="w-5 h-5" />, color: 'teal' },
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  image_base64?: string;
+  video_base64?: string;
+  thoughts?: Thought[];
+}
+
+const SUGGESTED_PROMPTS = [
+  "Ahoj! Ako sa máš?",
+  "Napíš krátky blog o SEO optimalizácii",
+  "Pomôž mi s reklamáciou produktu",
+  "Aké sú výhody dropshippingu?",
 ];
 
-const COLOR_CLASSES: Record<string, { bg: string; text: string; border: string; hover: string; light: string; bgHover: string }> = {
-  blue: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-200', hover: 'hover:bg-blue-50', light: 'bg-blue-100', bgHover: 'hover:bg-blue-500' },
-  green: { bg: 'bg-green-600', text: 'text-green-600', border: 'border-green-200', hover: 'hover:bg-green-50', light: 'bg-green-100', bgHover: 'hover:bg-green-500' },
-  purple: { bg: 'bg-purple-600', text: 'text-purple-600', border: 'border-purple-200', hover: 'hover:bg-purple-50', light: 'bg-purple-100', bgHover: 'hover:bg-purple-500' },
-  red: { bg: 'bg-red-600', text: 'text-red-600', border: 'border-red-200', hover: 'hover:bg-red-50', light: 'bg-red-100', bgHover: 'hover:bg-red-500' },
-  orange: { bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-200', hover: 'hover:bg-orange-50', light: 'bg-orange-100', bgHover: 'hover:bg-orange-500' },
-  teal: { bg: 'bg-teal-600', text: 'text-teal-600', border: 'border-teal-200', hover: 'hover:bg-teal-50', light: 'bg-teal-100', bgHover: 'hover:bg-teal-500' },
-};
-
-const INITIAL_MESSAGE: Message = {
-  role: "assistant",
-  content: "Dobrý deň! Som Tvojton AI, tvoj osobný asistent. Vyber si funkciu z ľavého panelu alebo mi rovno napíš!",
-};
-
 export default function Agent() {
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Dobrý deň! Som Tvojton AI, tvoj osobný asistent. Ako ti dnes môžem pomôcť?",
+    },
+  ]);
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeFeature, setActiveFeature] = useState<Feature>('chat');
-  const [urlInput, setUrlInput] = useState('');
-  const [imagePrompt, setImagePrompt] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [competitorUrl, setCompetitorUrl] = useState('');
-  const [marketingUrl, setMarketingUrl] = useState('');
-  const [marketingLang, setMarketingLang] = useState('sk');
+  const [expandedThoughts, setExpandedThoughts] = useState<Set<number>>(new Set());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const checkConnection = useCallback(async () => {
-    const online = await checkHealth();
-    setIsOnline(online);
-    if (!online) {
-      toast.error("AI agent nie je online. Skontroluj pripojenie.");
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const checkHealth = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      setIsOnline(response.ok);
+      if (!response.ok) {
+        toast.error("AI agent nie je online. Skontroluj pripojenie.");
+      }
+    } catch {
+      setIsOnline(false);
+      toast.error("Nedá sa pripojiť k AI agentovi.");
     }
   }, []);
 
   useEffect(() => {
-    checkConnection();
-  }, [checkConnection]);
+    checkHealth();
+  }, [checkHealth]);
 
-  const handleNewChat = () => {
-    setMessages([INITIAL_MESSAGE]);
-    setUrlInput('');
-    setImagePrompt('');
-    setVideoUrl('');
-    setCompetitorUrl('');
-    setMarketingUrl('');
-    setActiveFeature('chat');
+  const toggleThoughts = (index: number) => {
+    setExpandedThoughts((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
   };
 
-  const handleSendMessage = async (content: string) => {
-    const userMessage: Message = { role: "user", content };
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: "user", content: input.trim() };
     setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setIsLoading(true);
 
-    try {
-      const response = await sendMessage(content);
+    const assistantMessage: Message = {
+      role: "assistant",
+      content: "",
+      thoughts: [],
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+    const messageIndex = messages.length;
 
-      if (response.error) {
-        const errorMessage: Message = {
-          role: "assistant",
-          content: `Ups, nastala chyba: ${response.error}`,
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      } else {
-        const assistantMessage: Message = {
-          role: "assistant",
-          content: response.answer || response.reasoning || "Odpoveď nie je dostupná.",
-          image_base64: response.image_base64,
-          video_base64: response.video_base64,
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+    // Get last 10 messages for context (excluding the current assistant message)
+    const historyMessages = messages.slice(-10);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/stream-query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          query: userMessage.content,
+          history: historyMessages 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              
+              if (event.type === "chunk") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[messageIndex]) {
+                    updated[messageIndex] = {
+                      ...updated[messageIndex],
+                      content: updated[messageIndex].content + event.data,
+                    };
+                  }
+                  return updated;
+                });
+              }
+              
+              if (event.type === "thoughts") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[messageIndex]) {
+                    updated[messageIndex] = {
+                      ...updated[messageIndex],
+                      thoughts: event.data,
+                    };
+                  }
+                  return updated;
+                });
+                setExpandedThoughts((prev) => new Set([...prev, messageIndex]));
+              }
+              
+              if (event.type === "done") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[messageIndex]) {
+                    updated[messageIndex] = {
+                      ...updated[messageIndex],
+                      content: event.full_answer || updated[messageIndex].content,
+                      thoughts: event.thoughts || [],
+                    };
+                  }
+                  return updated;
+                });
+              }
+            } catch (e) {
+              console.error("Parse error:", e);
+            }
+          }
+        }
       }
     } catch (error) {
-      const errorMessage: Message = {
-        role: "assistant",
-        content: "Nastala neočakávaná chyba. Skús to znova.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated[messageIndex]) {
+          updated[messageIndex] = {
+            ...updated[messageIndex],
+            content: `Ups, nastala chyba: ${error instanceof Error ? error.message : "Neošetrená chyba"}. Skús to znova.`,
+          };
+        }
+        return updated;
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFeatureAction = async (feature: Feature) => {
-    setActiveFeature(feature);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
-  const runAnalyzer = async () => {
-    if (!urlInput.trim()) {
-      toast.error("Zadaj URL adresu");
-      return;
-    }
-    setIsLoading(true);
-    await handleSendMessage(`Analyzuj webovú stránku: ${urlInput}`);
-    setIsLoading(false);
-  };
-
-  const runImageGenerator = async () => {
-    if (!imagePrompt.trim()) {
-      toast.error("Zadaj popis obrázka");
-      return;
-    }
-    setIsLoading(true);
-    await handleSendMessage(`Vygeneruj obrázok: ${imagePrompt}`);
-    setIsLoading(false);
-  };
-
-  const runVideoGenerator = async () => {
-    if (!videoUrl.trim()) {
-      toast.error("Zadaj URL produktu");
-      return;
-    }
-    setIsLoading(true);
-    await handleSendMessage(`Vytvor video pre produkt z: ${videoUrl}`);
-    setIsLoading(false);
-  };
-
-  const runCompetitorAnalysis = async () => {
-    if (!competitorUrl.trim()) {
-      toast.error("Zadaj URL konkurenta");
-      return;
-    }
-    setIsLoading(true);
-    await handleSendMessage(`Analyzuj konkurenta: ${competitorUrl}`);
-    setIsLoading(false);
-  };
-
-  const runMarketing = async () => {
-    if (!marketingUrl.trim()) {
-      toast.error("Zadaj URL produktu");
-      return;
-    }
-    setIsLoading(true);
-    await handleSendMessage(`Vytvor marketingové materiály pre produkt z: ${marketingUrl} v jazyku: ${marketingLang}`);
-    setIsLoading(false);
-  };
-
-  const renderFeaturePanel = () => {
-    const feature = FEATURES.find(f => f.id === activeFeature);
-    if (!feature) return null;
-    const color = COLOR_CLASSES[feature.color];
-
-    switch (activeFeature) {
-      case 'analyzer':
-        return (
-          <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
-              {feature.icon}
-              {feature.title}
-            </h3>
-            <p className="text-sm text-gray-600">Zadaj URL adresu a AI analyzuje obsah, produkt, ceny.</p>
-            <div className="flex flex-col gap-2">
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/produkt"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-              <button
-                onClick={runAnalyzer}
-                disabled={isLoading}
-                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                Spustiť analýzu
-              </button>
-            </div>
-          </div>
-        );
-
-      case 'image':
-        return (
-          <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
-              {feature.icon}
-              {feature.title}
-            </h3>
-            <p className="text-sm text-gray-600">Popíš obrázok, ktorý chceš vygenerovať.</p>
-            <div className="flex flex-col gap-2">
-              <textarea
-                value={imagePrompt}
-                onChange={(e) => setImagePrompt(e.target.value)}
-                placeholder="Napíš popis obrázka..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              />
-              <button
-                onClick={runImageGenerator}
-                disabled={isLoading}
-                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
-                Generuj obrázok
-              </button>
-            </div>
-          </div>
-        );
-
-      case 'video':
-        return (
-          <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
-              {feature.icon}
-              {feature.title}
-            </h3>
-            <p className="text-sm text-gray-600">Zadaj URL produktu a AI vytvorí video reklamu.</p>
-            <div className="flex flex-col gap-2">
-              <input
-                type="url"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://example.com/produkt"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-              <button
-                onClick={runVideoGenerator}
-                disabled={isLoading}
-                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                Vytvor video
-              </button>
-            </div>
-          </div>
-        );
-
-      case 'competitor':
-        return (
-          <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
-              {feature.icon}
-              {feature.title}
-            </h3>
-            <p className="text-sm text-gray-600">Analyzuj web konkurenta a zisti ich silné stránky.</p>
-            <div className="flex flex-col gap-2">
-              <input
-                type="url"
-                value={competitorUrl}
-                onChange={(e) => setCompetitorUrl(e.target.value)}
-                placeholder="https://konkurent.sk"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-              <button
-                onClick={runCompetitorAnalysis}
-                disabled={isLoading}
-                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                Analyzovať konkurenta
-              </button>
-            </div>
-          </div>
-        );
-
-      case 'marketing':
-        return (
-          <div className="space-y-4">
-            <h3 className={`font-semibold ${color.text} flex items-center gap-2`}>
-              {feature.icon}
-              {feature.title}
-            </h3>
-            <p className="text-sm text-gray-600">Vytvor obsah pre Facebook, Instagram, blog.</p>
-            <div className="flex flex-col gap-3">
-              <input
-                type="url"
-                value={marketingUrl}
-                onChange={(e) => setMarketingUrl(e.target.value)}
-                placeholder="https://example.com/produkt"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              />
-              <select
-                value={marketingLang}
-                onChange={(e) => setMarketingLang(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              >
-                <option value="sk">Slovenčina</option>
-                <option value="cs">Čeština</option>
-                <option value="en">English</option>
-              </select>
-              <button
-                onClick={runMarketing}
-                disabled={isLoading}
-                className={`w-full ${color.bg} text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                Generuj marketing
-              </button>
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="text-center py-8">
-            <Bot className={`w-12 h-12 ${color.text} mx-auto mb-4 opacity-50`} />
-            <p className="text-gray-600 text-sm">Vyber si funkciu z ľavého panelu alebo napíš správu.</p>
-          </div>
-        );
-    }
+  const handleSuggestedPrompt = (prompt: string) => {
+    setInput(prompt);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
-      {/* Sidebar */}
-      <aside 
-        className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${
-          sidebarOpen ? 'w-64' : 'w-0'
-        } overflow-hidden`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Bot className="w-5 h-5 text-blue-600" />
-              <span className={sidebarOpen ? 'opacity-100' : 'opacity-0'}>Tvojton AI</span>
-            </h2>
-          </div>
-          
-          {/* New Chat Button */}
-          <div className={`p-3 border-b border-gray-200 ${sidebarOpen ? '' : 'hidden'}`}>
-            <button
-              onClick={handleNewChat}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-200"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
             >
-              <Plus className="w-5 h-5" />
-              <span className="font-medium">Nový chat</span>
-            </button>
-          </div>
-          
-          {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
-            {FEATURES.map((feature) => {
-              const color = COLOR_CLASSES[feature.color];
-              const isActive = activeFeature === feature.id;
-              return (
-                <button
-                  key={feature.id}
-                  onClick={() => handleFeatureAction(feature.id)}
-                  className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${
-                    isActive 
-                      ? `${color.light} ${color.text} border ${color.border}` 
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <span className={isActive ? color.text : 'text-gray-500'}>{feature.icon}</span>
-                  <div className={`text-left transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0'} whitespace-nowrap`}>
-                    <p className={`font-medium text-sm ${isActive ? color.text : ''}`}>{feature.title}</p>
-                    <p className="text-xs text-gray-500">{feature.description}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Späť</span>
+            </Link>
 
-          {/* Status */}
-          <div className={`p-4 border-t border-gray-200 ${sidebarOpen ? '' : 'hidden'}`}>
-            <div className="flex items-center gap-2">
-              {isOnline === null ? (
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-              ) : isOnline ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
-                  <span className="text-xs text-gray-500">Online</span>
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-xs text-gray-500">Offline</span>
-                </>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
+                <Bot className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-gray-900">Tvojton AI</h1>
+                <div className="flex items-center gap-1.5">
+                  {isOnline === null ? (
+                    <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  ) : isOnline ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-xs text-gray-500">Online</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-xs text-gray-500">Offline</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                T
+              </div>
+              <span className="font-semibold text-gray-900 hidden sm:block">
+                tvojton.online
+              </span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Chat Area */}
+      <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xl h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+            {messages.map((message, index) => (
+              <div key={index}>
+                <div
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 break-words ${
+                      message.role === "user"
+                        ? "bg-blue-600 text-white rounded-br-md"
+                        : "bg-gray-100 text-gray-900 rounded-bl-md"
+                    }`}
+                    style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                  >
+                    {message.role === "assistant" && (
+                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                        <Bot className="w-4 h-4" />
+                        <span>Tvojton AI</span>
+                      </div>
+                    )}
+                    
+                    {/* Message content */}
+                    <p 
+                      className="whitespace-pre-wrap break-words max-h-64 overflow-y-auto"
+                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                    >
+                      {message.content}
+                    </p>
+                    
+                    {/* Image */}
+                    {message.image_base64 && (
+                      <img 
+                        src={`data:image/png;base64,${message.image_base64}`}
+                        alt="Vygenerovaný obrázok"
+                        className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                        style={{ maxHeight: '400px', objectFit: 'contain' }}
+                      />
+                    )}
+                    
+                    {/* Video */}
+                    {message.video_base64 && (
+                      <video 
+                        src={`data:video/mp4;base64,${message.video_base64}`}
+                        controls
+                        className="mt-3 rounded-lg max-w-full"
+                        style={{ maxHeight: '400px' }}
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Thoughts section - always visible for assistant messages */}
+                {message.role === "assistant" && (
+                  <div className="mt-2 ml-4 max-w-[85%]">
+                    {/* Model info badge */}
+                    <div className="inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full mb-2">
+                      <Bot className="w-3 h-3" />
+                      <span>Twin Pro</span>
+                    </div>
+                    
+                    {/* Thoughts toggle */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Myšlienkový postup
+                          {message.thoughts && message.thoughts.length > 0 && (
+                            <span className="ml-1 text-gray-400">({message.thoughts.length})</span>
+                          )}
+                        </h4>
+                        <button
+                          onClick={() => toggleThoughts(index)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          {expandedThoughts.has(index) ? (
+                            <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      {expandedThoughts.has(index) ? (
+                        <ul className="space-y-1.5">
+                          {message.thoughts && message.thoughts.map((thought, thoughtIndex) => (
+                            <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
+                              <span className="text-blue-500 mt-0.5 shrink-0">•</span>
+                              <span className="break-words">
+                                {thought.step}
+                                {thought.brand && (
+                                  <span className="ml-1 text-blue-600 font-medium">
+                                    [{thought.brand}]
+                                  </span>
+                                )}
+                                {thought.details && (
+                                  <span className="ml-1 text-gray-400">
+                                    — {thought.details}
+                                  </span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">
+                          {message.thoughts && message.thoughts.length > 0 
+                            ? "Klikni pre detaily..." 
+                            : "Načítavam..."}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 max-w-[85%]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bot className="w-4 h-4 animate-pulse text-blue-500" />
+                      <span className="text-sm font-medium text-gray-700">Twin Pro</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                      </div>
+                      <span>Premýšľam...</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="ml-4 max-w-[85%]">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                    <div className="flex items-center gap-2 text-xs text-blue-600">
+                      <Sparkles className="w-3 h-3 animate-pulse" />
+                      <span>Získavam myšlienkový postup...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Suggested Prompts */}
+          {messages.length === 1 && (
+            <div className="px-4 pb-2">
+              <p className="text-xs text-gray-500 mb-2">Rýchle otázky:</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_PROMPTS.map((prompt, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSuggestedPrompt(prompt)}
+                    disabled={isLoading}
+                    className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="border-t border-gray-100 p-4 bg-gray-50">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Napíš správu..."
+                disabled={isLoading}
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!input.trim() || isLoading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? "..." : "Odoslať"}
+              </button>
             </div>
           </div>
         </div>
-      </aside>
+      </main>
 
-      {/* Toggle Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="absolute left-0 top-20 z-10 bg-white border border-gray-200 rounded-r-lg p-2 shadow-md hover:bg-gray-50 transition-colors"
-        style={{ left: sidebarOpen ? '256px' : '0px' }}
-      >
-        {sidebarOpen ? (
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-gray-600" />
-        )}
-      </button>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/"
-                  className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span className="text-sm font-medium">Späť</span>
-                </Link>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
-                  <Bot className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="font-semibold text-gray-900">Tvojton AI</h1>
-                  <p className="text-xs text-gray-500">
-                    {FEATURES.find(f => f.id === activeFeature)?.title || 'Chat'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleNewChat}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Nový chat"
-                >
-                  <Plus className="w-5 h-5 text-gray-600" />
-                </button>
-                <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title={sidebarOpen ? 'Skryť panel' : 'Zobraziť panel'}
-                >
-                  {sidebarOpen ? <X className="w-5 h-5 text-gray-600" /> : <Menu className="w-5 h-5 text-gray-600" />}
-                </button>
-                <Link href="/" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                    T
-                  </div>
-                  <span className="font-semibold text-gray-900 hidden sm:block">
-                    tvojton.online
-                  </span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden relative">
-          {/* Feature Panel */}
-          <div className={`absolute lg:relative z-10 w-80 h-full bg-white border-r border-gray-200 p-4 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:hidden'}`}>
-            {renderFeaturePanel()}
-          </div>
-
-          {/* Chat Area */}
-          <main className="flex-1 p-4">
-            <AIChatBox
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              isLoading={isLoading}
-              placeholder="Napíš správu alebo použi funkciu z ľavého panelu..."
-              emptyStateMessage="Začni konverzáciu s Tvojton AI"
-              height="calc(100vh - 130px)"
-              className="rounded-2xl border-gray-200 shadow-xl"
-            />
-          </main>
-        </div>
-
-        {/* Footer */}
-        <footer className="py-2 text-center text-xs text-gray-500 border-t border-gray-200">
-          <p>Tvojton AI — Brand Twin pre podnikanie</p>
-        </footer>
-      </div>
+      {/* Footer */}
+      <footer className="py-4 text-center text-sm text-gray-500">
+        <p>Tvojton AI — Tvoj osobný AI asistent pre podnikanie</p>
+      </footer>
     </div>
   );
 }

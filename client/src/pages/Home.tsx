@@ -27,6 +27,8 @@ export default function Home() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    telephone: "",
+    website: "",
     plan: "",
     message: "",
   });
@@ -35,7 +37,7 @@ export default function Home() {
   const submitContact = trpc.contact.submit.useMutation({
     onSuccess: () => {
       setFormSubmitted(true);
-      setFormData({ name: "", email: "", plan: "", message: "" });
+      setFormData({ name: "", email: "", telephone: "", website: "", plan: "", message: "" });
       toast.success("Ďakujeme! Budeme ťa informovať.");
     },
     onError: (err) => {
@@ -106,17 +108,18 @@ export default function Home() {
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-6"
                   >
+                    <Bot className="w-4 h-4" />
                     Vyskúšať agenta
-                    <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
                 <Button
                   size="lg"
                   variant="outline"
                   className="border-gray-200 text-gray-700 hover:bg-gray-50 px-6"
-                  onClick={() => scrollTo("features")}
+                  onClick={() => scrollTo("contact")}
                 >
-                  Pozri funkcie
+                  Chcem vedieť viac
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-6 text-sm text-gray-500">
@@ -364,6 +367,30 @@ export default function Home() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="telephone" className="text-sm font-medium text-gray-700">Telefónne číslo</Label>
+                      <Input
+                        id="telephone"
+                        type="tel"
+                        placeholder="+421 900 123 456"
+                        value={formData.telephone}
+                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                        className="border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="website" className="text-sm font-medium text-gray-700">Web stránka <span className="text-gray-400">(voliteľné)</span></Label>
+                      <Input
+                        id="website"
+                        type="url"
+                        placeholder="https://www.example.com"
+                        value={formData.website}
+                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        className="border-gray-200"
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-gray-700">Ktorý plán ťa zaujíma?</Label>
                     <Select value={formData.plan} onValueChange={(v) => setFormData({ ...formData, plan: v })}>
@@ -380,7 +407,7 @@ export default function Home() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="message" className="text-sm font-medium text-gray-700">
-                      Čo by mal agent vedieť ako prvé? <span className="text-gray-400">(voliteľné)</span>
+                      Poznámky <span className="text-gray-400">(voliteľné)</span>
                     </Label>
                     <Textarea
                       id="message"
@@ -399,7 +426,7 @@ export default function Home() {
                     {submitContact.isPending ? "Odosielam..." : "Chcem byť medzi prvými"}
                   </Button>
                   <p className="text-center text-xs text-gray-400">
-                    Tvoj email budeme používať len na informácie o Tvojton.online.
+                    Tvoj email a telefón budeme používať len na informácie o Tvojton.online.
                   </p>
                 </form>
               )}

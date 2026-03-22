@@ -40,6 +40,8 @@ export const contactSubmissions = mysqlTable("contact_submissions", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
+  telephone: varchar("telephone", { length: 64 }),
+  website: varchar("website", { length: 255 }),
   plan: varchar("plan", { length: 64 }),
   message: text("message"),
   emailSent: boolean("emailSent").default(false).notNull(),
