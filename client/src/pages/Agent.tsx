@@ -60,22 +60,16 @@ export default function Agent() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    }
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
+    requestAnimationFrame(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
+      }
+    });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      scrollToBottom();
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
 
   const checkHealth = useCallback(async () => {
     try {
@@ -140,6 +134,8 @@ export default function Agent() {
 
       const decoder = new TextDecoder();
       let buffer = "";
+      let updateCounter = 0;
+      let accumulatedText = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -155,16 +151,23 @@ export default function Agent() {
               const event = JSON.parse(line.slice(6));
               
               if (event.type === "chunk") {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  if (updated[assistantIndex]) {
-                    updated[assistantIndex] = {
-                      ...updated[assistantIndex],
-                      content: updated[assistantIndex].content + event.data,
-                    };
-                  }
-                  return updated;
-                });
+                accumulatedText += event.data;
+                updateCounter++;
+                
+                if (updateCounter >= 3) {
+                  setMessages((prev) => {
+                    const updated = [...prev];
+                    if (updated[assistantIndex]) {
+                      updated[assistantIndex] = {
+                        ...updated[assistantIndex],
+                        content: accumulatedText,
+                      };
+                    }
+                    return updated;
+                  });
+                  scrollToBottom();
+                  updateCounter = 0;
+                }
               }
               
               if (event.type === "thoughts") {
@@ -178,6 +181,7 @@ export default function Agent() {
                   }
                   return updated;
                 });
+                scrollToBottom();
               }
               
               if (event.type === "image") {
