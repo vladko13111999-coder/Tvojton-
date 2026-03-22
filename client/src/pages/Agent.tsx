@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Bot, ArrowLeft, ChevronDown, Sparkles } from "lucide-react";
+import { Bot, ArrowLeft, ChevronDown, Sparkles, Image, Search, Video, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://37gt7a0hmcbdqm-7777.proxy.runpod.net';
@@ -21,11 +21,27 @@ interface Message {
   thoughts?: Thought[];
 }
 
-const SUGGESTED_PROMPTS = [
-  "Ahoj! Ako sa máš?",
-  "Napíš krátky blog o SEO optimalizácii",
-  "Pomôž mi s reklamáciou produktu",
-  "Aké sú výhody dropshippingu?",
+interface ModelOption {
+  id: string;
+  name: string;
+  model: string;
+  description: string;
+  icon: string;
+}
+
+const MODELS: ModelOption[] = [
+  { id: "light", name: "Twin Light", model: "gemma3:4b", description: "free", icon: "🌟" },
+  { id: "pro", name: "Twin Pro", model: "gemma3:12b", description: "basic", icon: "💎" },
+  { id: "research", name: "Twin Research", model: "qwen2.5:14b", description: "analýza", icon: "🔬" },
+  { id: "coder", name: "Coder Agent", model: "qwen2.5-coder:14b", description: "nástroje", icon: "⚡" },
+];
+
+const QUICK_ACTIONS = [
+  { icon: Image, label: "Obrázok", prefix: "Vygeneruj obrázok: " },
+  { icon: Search, label: "Konkurencia", prefix: "Analyzuj konkurenciu: " },
+  { icon: Video, label: "Video", prefix: "Sprav video: " },
+  { icon: FileText, label: "SEO blog", prefix: "Napíš SEO blog o: " },
+  { icon: Globe, label: "Analýza URL", prefix: "Analyzuj web: " },
 ];
 
 export default function Agent() {
@@ -38,6 +54,8 @@ export default function Agent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
+  const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -91,10 +109,14 @@ export default function Agent() {
     try {
       const response = await fetch(`${API_BASE_URL}/stream-query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Model": selectedModel.model,
+        },
         body: JSON.stringify({ 
           query: userMessage.content,
-          history: historyMessages 
+          history: historyMessages,
+          model: selectedModel.model,
         }),
       });
 
@@ -189,8 +211,8 @@ export default function Agent() {
     }
   };
 
-  const handleSuggestedPrompt = (prompt: string) => {
-    setInput(prompt);
+  const handleQuickAction = (prefix: string) => {
+    setInput(prefix);
   };
 
   return (
@@ -231,14 +253,44 @@ export default function Agent() {
               </div>
             </div>
 
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                T
-              </div>
-              <span className="font-semibold text-gray-900 hidden sm:block">
-                tvojton.online
-              </span>
-            </Link>
+            {/* Model Selector */}
+            <div className="relative">
+              <button
+                onClick={() => setShowModelDropdown(!showModelDropdown)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-sm"
+              >
+                <span>{selectedModel.icon}</span>
+                <span className="font-medium text-blue-700">{selectedModel.name}</span>
+                <span className="text-xs text-gray-500">({selectedModel.description})</span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showModelDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  {MODELS.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => {
+                        setSelectedModel(model);
+                        setShowModelDropdown(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors ${
+                        selectedModel.id === model.id ? 'bg-blue-50' : ''
+                      }`}
+                    >
+                      <span className="text-lg">{model.icon}</span>
+                      <div className="text-left">
+                        <div className="font-medium text-gray-900">{model.name}</div>
+                        <div className="text-xs text-gray-500">{model.description}</div>
+                      </div>
+                      {selectedModel.id === model.id && (
+                        <span className="ml-auto text-blue-500">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -264,7 +316,9 @@ export default function Agent() {
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
                         <Bot className="w-4 h-4" />
-                        <span>Tvojton AI</span>
+                        <span className="font-medium text-gray-700">Tvojton AI</span>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-blue-600">{selectedModel.icon} {selectedModel.name}</span>
                       </div>
                     )}
                     {message.role === "user" && (
@@ -391,34 +445,32 @@ export default function Agent() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggested Prompts */}
-          {messages.length === 1 && (
-            <div className="px-4 pb-2">
-              <p className="text-xs text-gray-500 mb-2">Rýchle otázky:</p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_PROMPTS.map((prompt, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSuggestedPrompt(prompt)}
-                    disabled={isLoading}
-                    className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
+          {/* Quick Actions */}
+          <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+            <div className="flex flex-wrap gap-2">
+              {QUICK_ACTIONS.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleQuickAction(action.prefix)}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <action.icon className="w-3.5 h-3.5 text-blue-500" />
+                  <span>{action.label}</span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Input */}
-          <div className="border-t border-gray-100 p-4 bg-gray-50">
+          <div className="border-t border-gray-100 p-4 bg-white">
             <div className="flex gap-3">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Napíš správu..."
+                placeholder="Napíš správu alebo použi rýchle akcie..."
                 disabled={isLoading}
                 className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
