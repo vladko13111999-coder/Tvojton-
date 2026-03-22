@@ -169,6 +169,19 @@ export default function Agent() {
                 });
               }
               
+              if (event.type === "image") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[assistantIndex]) {
+                    updated[assistantIndex] = {
+                      ...updated[assistantIndex],
+                      image_base64: event.image_base64,
+                    };
+                  }
+                  return updated;
+                });
+              }
+              
               if (event.type === "done") {
                 setMessages((prev) => {
                   const updated = [...prev];
