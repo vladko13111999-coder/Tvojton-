@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Bot, ArrowLeft, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://i5nrun-ci2ahz-7777.proxy.runpod.net';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://37gt7a0hmcbdqm-7777.proxy.runpod.net';
 
 interface Thought {
   step: string;
