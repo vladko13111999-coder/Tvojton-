@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Bot, ArrowLeft, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Bot, ArrowLeft, ChevronDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://i5nrun-ci2ahz-7777.proxy.runpod.net';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://37gt7a0hmcbdqm-7777.proxy.runpod.net';
 
 interface Thought {
   step: string;
@@ -38,7 +38,6 @@ export default function Agent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
-  const [expandedThoughts, setExpandedThoughts] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -66,36 +65,28 @@ export default function Agent() {
     checkHealth();
   }, [checkHealth]);
 
-  const toggleThoughts = (index: number) => {
-    setExpandedThoughts((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
-
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input.trim() };
-    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
+    // Create assistant placeholder
     const assistantMessage: Message = {
       role: "assistant",
       content: "",
       thoughts: [],
     };
-    setMessages((prev) => [...prev, assistantMessage]);
-    const messageIndex = messages.length;
 
-    // Get last 10 messages for context (excluding the current assistant message)
-    const historyMessages = messages.slice(-10);
+    // Get current message count for assistant index
+    const assistantIndex = messages.length + 1;
+
+    // Add both messages at once
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+
+    // Get last 10 messages for context (user + assistant)
+    const historyMessages = [...messages, userMessage].slice(-10);
 
     try {
       const response = await fetch(`${API_BASE_URL}/stream-query`, {
@@ -133,10 +124,10 @@ export default function Agent() {
               if (event.type === "chunk") {
                 setMessages((prev) => {
                   const updated = [...prev];
-                  if (updated[messageIndex]) {
-                    updated[messageIndex] = {
-                      ...updated[messageIndex],
-                      content: updated[messageIndex].content + event.data,
+                  if (updated[assistantIndex]) {
+                    updated[assistantIndex] = {
+                      ...updated[assistantIndex],
+                      content: updated[assistantIndex].content + event.data,
                     };
                   }
                   return updated;
@@ -146,24 +137,23 @@ export default function Agent() {
               if (event.type === "thoughts") {
                 setMessages((prev) => {
                   const updated = [...prev];
-                  if (updated[messageIndex]) {
-                    updated[messageIndex] = {
-                      ...updated[messageIndex],
+                  if (updated[assistantIndex]) {
+                    updated[assistantIndex] = {
+                      ...updated[assistantIndex],
                       thoughts: event.data,
                     };
                   }
                   return updated;
                 });
-                setExpandedThoughts((prev) => new Set([...prev, messageIndex]));
               }
               
               if (event.type === "done") {
                 setMessages((prev) => {
                   const updated = [...prev];
-                  if (updated[messageIndex]) {
-                    updated[messageIndex] = {
-                      ...updated[messageIndex],
-                      content: event.full_answer || updated[messageIndex].content,
+                  if (updated[assistantIndex]) {
+                    updated[assistantIndex] = {
+                      ...updated[assistantIndex],
+                      content: event.full_answer || updated[assistantIndex].content,
                       thoughts: event.thoughts || [],
                     };
                   }
@@ -179,9 +169,9 @@ export default function Agent() {
     } catch (error) {
       setMessages((prev) => {
         const updated = [...prev];
-        if (updated[messageIndex]) {
-          updated[messageIndex] = {
-            ...updated[messageIndex],
+        if (updated[assistantIndex]) {
+          updated[assistantIndex] = {
+            ...updated[assistantIndex],
             content: `Ups, nastala chyba: ${error instanceof Error ? error.message : "Neošetrená chyba"}. Skús to znova.`,
           };
         }
@@ -277,6 +267,11 @@ export default function Agent() {
                         <span>Tvojton AI</span>
                       </div>
                     )}
+                    {message.role === "user" && (
+                      <div className="flex items-center gap-2 mb-2 text-xs text-blue-200">
+                        <span>Ty</span>
+                      </div>
+                    )}
                     
                     {/* Message content */}
                     <p 
@@ -310,65 +305,58 @@ export default function Agent() {
                 
                 {/* Thoughts section - always visible for assistant messages */}
                 {message.role === "assistant" && (
-                  <div className="mt-2 ml-4 max-w-[85%]">
-                    {/* Model info badge */}
-                    <div className="inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full mb-2">
-                      <Bot className="w-3 h-3" />
-                      <span>Twin Pro</span>
-                    </div>
-                    
-                    {/* Thoughts toggle */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-medium text-blue-700 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
+                  <details className="mt-2 ml-4 max-w-[85%] group">
+                    <summary className="cursor-pointer list-none">
+                      {/* Model badge - visible when collapsed */}
+                      <div className="inline-flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors">
+                        <Bot className="w-3 h-3" />
+                        <span className="font-medium">Twin Pro</span>
+                        <span className="text-gray-400">•</span>
+                        <Sparkles className="w-3 h-3" />
+                        <span className="text-gray-600">
                           Myšlienkový postup
                           {message.thoughts && message.thoughts.length > 0 && (
-                            <span className="ml-1 text-gray-400">({message.thoughts.length})</span>
+                            <span className="ml-1">({message.thoughts.length})</span>
                           )}
-                        </h4>
-                        <button
-                          onClick={() => toggleThoughts(index)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          {expandedThoughts.has(index) ? (
-                            <ChevronUp className="w-3 h-3" />
-                          ) : (
-                            <ChevronDown className="w-3 h-3" />
-                          )}
-                        </button>
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-gray-400 group-open:rotate-180 transition-transform ml-1" />
                       </div>
-                      
-                      {expandedThoughts.has(index) ? (
-                        <ul className="space-y-1.5">
-                          {message.thoughts && message.thoughts.map((thought, thoughtIndex) => (
-                            <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
-                              <span className="text-blue-500 mt-0.5 shrink-0">•</span>
-                              <span className="break-words">
-                                {thought.step}
-                                {thought.brand && (
-                                  <span className="ml-1 text-blue-600 font-medium">
-                                    [{thought.brand}]
-                                  </span>
-                                )}
-                                {thought.details && (
-                                  <span className="ml-1 text-gray-400">
-                                    — {thought.details}
-                                  </span>
-                                )}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-gray-400 italic">
-                          {message.thoughts && message.thoughts.length > 0 
-                            ? "Klikni pre detaily..." 
-                            : "Načítavam..."}
-                        </p>
-                      )}
+                    </summary>
+                    
+                    {/* Thoughts content */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100 mt-2">
+                      <ul className="space-y-2">
+                        {message.thoughts && message.thoughts.length > 0 ? (
+                          message.thoughts.map((thought, thoughtIndex) => {
+                            const time = thought.timestamp ? new Date(thought.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }) : '';
+                            return (
+                              <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
+                                <span className="text-blue-500 mt-0.5 shrink-0">{time} •</span>
+                                <span className="break-words flex-1">
+                                  <span className="font-medium text-gray-800">{thought.step}</span>
+                                  {thought.brand && (
+                                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">
+                                      {thought.brand}
+                                    </span>
+                                  )}
+                                  {thought.details && (
+                                    <span className="ml-1.5 text-gray-500">
+                                      — {thought.details}
+                                    </span>
+                                  )}
+                                </span>
+                              </li>
+                            );
+                          })
+                        ) : (
+                          <li className="text-xs text-gray-400 italic flex items-center gap-2">
+                            <Sparkles className="w-3 h-3 animate-pulse" />
+                            Načítavam myšlienkový postup...
+                          </li>
+                        )}
+                      </ul>
                     </div>
-                  </div>
+                  </details>
                 )}
               </div>
             ))}
