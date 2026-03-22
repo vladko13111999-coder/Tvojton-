@@ -1,13 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Bot, ArrowLeft } from "lucide-react";
+import { Bot, ArrowLeft, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://i5nrun-ci2ahz-7777.proxy.runpod.net';
 
+interface Thought {
+  step: string;
+  timestamp: string;
+  model?: string;
+  brand?: string;
+  details?: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  image_base64?: string;
+  video_base64?: string;
+  thoughts?: Thought[];
 }
 
 const SUGGESTED_PROMPTS = [
@@ -27,6 +38,7 @@ export default function Agent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
+  const [expandedThoughts, setExpandedThoughts] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -54,6 +66,18 @@ export default function Agent() {
     checkHealth();
   }, [checkHealth]);
 
+  const toggleThoughts = (index: number) => {
+    setExpandedThoughts((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -78,6 +102,9 @@ export default function Agent() {
       const assistantMessage: Message = {
         role: "assistant",
         content: data.answer || data.reasoning || "Odpoveď nie je dostupná.",
+        image_base64: data.image_base64,
+        video_base64: data.video_base64,
+        thoughts: data.thoughts || [],
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
@@ -158,25 +185,92 @@ export default function Agent() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
+              <div key={index}>
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-md"
-                      : "bg-gray-100 text-gray-900 rounded-bl-md"
-                  }`}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  {message.role === "assistant" && (
-                    <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
-                      <Bot className="w-4 h-4" />
-                      <span>Tvojton AI</span>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      message.role === "user"
+                        ? "bg-blue-600 text-white rounded-br-md"
+                        : "bg-gray-100 text-gray-900 rounded-bl-md"
+                    }`}
+                  >
+                    {message.role === "assistant" && (
+                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                        <Bot className="w-4 h-4" />
+                        <span>Tvojton AI</span>
+                      </div>
+                    )}
+                    
+                    {/* Message content */}
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    
+                    {/* Image */}
+                    {message.image_base64 && (
+                      <img 
+                        src={`data:image/png;base64,${message.image_base64}`}
+                        alt="Vygenerovaný obrázok"
+                        className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                        style={{ maxHeight: '400px', objectFit: 'contain' }}
+                      />
+                    )}
+                    
+                    {/* Video */}
+                    {message.video_base64 && (
+                      <video 
+                        src={`data:video/mp4;base64,${message.video_base64}`}
+                        controls
+                        className="mt-3 rounded-lg max-w-full"
+                        style={{ maxHeight: '400px' }}
+                      />
+                    )}
+                  </div>
                 </div>
+                
+                {/* Thoughts section - only for assistant messages */}
+                {message.role === "assistant" && message.thoughts && message.thoughts.length > 0 && (
+                  <div className="mt-2 ml-4">
+                    <button
+                      onClick={() => toggleThoughts(index)}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      {expandedThoughts.has(index) ? (
+                        <ChevronUp className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      )}
+                      <Sparkles className="w-3 h-3" />
+                      <span>Zobraziť myšlienkový postup</span>
+                    </button>
+                    
+                    {expandedThoughts.has(index) && (
+                      <div className="mt-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <h4 className="text-xs font-medium text-gray-500 mb-2">Ako som na to prišiel:</h4>
+                        <ul className="space-y-1.5">
+                          {message.thoughts.map((thought, thoughtIndex) => (
+                            <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-600">
+                              <span className="text-blue-400 mt-0.5">•</span>
+                              <span>
+                                {thought.step}
+                                {thought.brand && (
+                                  <span className="ml-1 text-blue-600 font-medium">
+                                    [{thought.brand}]
+                                  </span>
+                                )}
+                                {thought.details && (
+                                  <span className="ml-1 text-gray-400">
+                                    — {thought.details}
+                                  </span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {isLoading && (
@@ -201,7 +295,8 @@ export default function Agent() {
                   <button
                     key={index}
                     onClick={() => handleSuggestedPrompt(prompt)}
-                    className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                    disabled={isLoading}
+                    className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {prompt}
                   </button>
