@@ -12,7 +12,6 @@ build/
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local
 
 # IDE and editor files
 .vscode/
@@ -106,5 +105,10 @@ temp/
 *.sqlite
 *.sqlite3
 
-# Webdev artifacts (checkpoint zips, migrations, etc.)
+# Webdev artifacts
 .webdev/
+.vercel
+
+# Allow specific env files
+!.env.production
+!client/.env.production

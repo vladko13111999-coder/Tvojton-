@@ -267,11 +267,6 @@ export default function Agent() {
                         <span>Tvojton AI</span>
                       </div>
                     )}
-                    {message.role === "user" && (
-                      <div className="flex items-center gap-2 mb-2 text-xs text-blue-200">
-                        <span>Ty</span>
-                      </div>
-                    )}
                     
                     {/* Message content */}
                     <p 
@@ -327,27 +322,24 @@ export default function Agent() {
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100 mt-2">
                       <ul className="space-y-2">
                         {message.thoughts && message.thoughts.length > 0 ? (
-                          message.thoughts.map((thought, thoughtIndex) => {
-                            const time = thought.timestamp ? new Date(thought.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }) : '';
-                            return (
-                              <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
-                                <span className="text-blue-500 mt-0.5 shrink-0">{time} •</span>
-                                <span className="break-words flex-1">
-                                  <span className="font-medium text-gray-800">{thought.step}</span>
-                                  {thought.brand && (
-                                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">
-                                      {thought.brand}
-                                    </span>
-                                  )}
-                                  {thought.details && (
-                                    <span className="ml-1.5 text-gray-500">
-                                      — {thought.details}
-                                    </span>
-                                  )}
-                                </span>
-                              </li>
-                            );
-                          })
+                          message.thoughts.map((thought, thoughtIndex) => (
+                            <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
+                              <span className="text-blue-500 mt-0.5 shrink-0">•</span>
+                              <span className="break-words">
+                                {thought.step}
+                                {thought.brand && (
+                                  <span className="ml-1.5 text-blue-600 font-semibold">
+                                    [{thought.brand}]
+                                  </span>
+                                )}
+                                {thought.details && (
+                                  <span className="ml-1.5 text-gray-500">
+                                    — {thought.details}
+                                  </span>
+                                )}
+                              </span>
+                            </li>
+                          ))
                         ) : (
                           <li className="text-xs text-gray-400 italic flex items-center gap-2">
                             <Sparkles className="w-3 h-3 animate-pulse" />

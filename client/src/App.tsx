@@ -18,6 +18,7 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/admin" component={Admin} />
+      <Route path="/agent" component={Agent} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
