@@ -86,8 +86,16 @@ export default function Agent() {
     setInput("");
     setIsLoading(true);
 
+    const assistantMessage: Message = {
+      role: "assistant",
+      content: "",
+      thoughts: [],
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+    const messageIndex = messages.length;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/query`, {
+      const response = await fetch(`${API_BASE_URL}/stream-query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: userMessage.content }),
@@ -97,22 +105,81 @@ export default function Agent() {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.answer || data.reasoning || "Odpoveď nie je dostupná.",
-        image_base64: data.image_base64,
-        video_base64: data.video_base64,
-        thoughts: data.thoughts || [],
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              
+              if (event.type === "chunk") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[messageIndex]) {
+                    updated[messageIndex] = {
+                      ...updated[messageIndex],
+                      content: updated[messageIndex].content + event.data,
+                    };
+                  }
+                  return updated;
+                });
+              }
+              
+              if (event.type === "thoughts") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[messageIndex]) {
+                    updated[messageIndex] = {
+                      ...updated[messageIndex],
+                      thoughts: event.data,
+                    };
+                  }
+                  return updated;
+                });
+              }
+              
+              if (event.type === "done") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated[messageIndex]) {
+                    updated[messageIndex] = {
+                      ...updated[messageIndex],
+                      content: event.full_answer || updated[messageIndex].content,
+                      thoughts: event.thoughts || [],
+                    };
+                  }
+                  return updated;
+                });
+              }
+            } catch (e) {
+              console.error("Parse error:", e);
+            }
+          }
+        }
+      }
     } catch (error) {
-      const errorMessage: Message = {
-        role: "assistant",
-        content: `Ups, nastala chyba: ${error instanceof Error ? error.message : "Neošetrená chyba"}. Skús to znova.`,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated[messageIndex]) {
+          updated[messageIndex] = {
+            ...updated[messageIndex],
+            content: `Ups, nastala chyba: ${error instanceof Error ? error.message : "Neošetrená chyba"}. Skús to znova.`,
+          };
+        }
+        return updated;
+      });
     } finally {
       setIsLoading(false);
     }
