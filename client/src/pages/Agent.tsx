@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Bot, ArrowLeft, ChevronDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://gvrrev5ehl8sg6-7777.proxy.runpod.net';
+const API_BASE_URL = 'https://known-ignored-delays-par.trycloudflare.com';
 
 interface Thought {
   step: string;
