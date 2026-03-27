@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://37gt7a0hmcbdqm-7777.proxy.runpod.net';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://gvrrev5ehl8sg6-7777.proxy.runpod.net';
 
 export interface QueryResponse {
   answer?: string;
