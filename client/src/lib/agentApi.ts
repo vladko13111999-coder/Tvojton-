@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://known-ignored-delays-par.trycloudflare.com';
+const API_BASE_URL = 'https://known-ignored-delays-par.trycloudflare.com';
 
 export interface QueryResponse {
   answer?: string;
