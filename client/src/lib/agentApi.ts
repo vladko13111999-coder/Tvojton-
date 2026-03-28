@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://known-ignored-delays-par.trycloudflare.com';
+const API_BASE_URL = 'https://76m820e9uwuvai-7777.proxy.runpod.net';
 
 export interface QueryResponse {
   answer?: string;
