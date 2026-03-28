@@ -196,87 +196,9 @@ export default function Agent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Messages - no scroll box, natural page scroll */}
-      <div className="container mx-auto px-4 py-6 max-w-3xl space-y-6">
-        {messages.map((message, index) => (
-          <div key={index}>
-            {/* Thoughts ABOVE the answer */}
-            {message.role === "assistant" && (message.thoughts?.length ?? 0) > 0 && (
-              <div className="mb-3 bg-blue-50 rounded-lg p-3 border-l-2 border-blue-500">
-                <div className="flex items-center gap-2 text-xs text-blue-600 mb-2">
-                  <span>💭</span>
-                  <span className="font-medium">Myšlienkový postup</span>
-                  <span className="text-gray-400">({message.thoughts?.length})</span>
-                </div>
-                <ul className="space-y-2">
-                  {message.thoughts?.map((thought, thoughtIndex) => (
-                    <li key={thoughtIndex} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span>💭</span>
-                      <span>
-                        {thought.step}
-                        {thought.details && (
-                          <span className="text-gray-500 ml-1">— {thought.details}</span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Message */}
-            {message.role === "user" ? (
-              <div className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900 ml-auto max-w-[85%]">
-                {message.content}
-              </div>
-            ) : (
-              <div className="border-l-2 border-blue-500 pl-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Bot className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
-                  <span className="text-xs text-gray-400">{selectedModel.icon} {selectedModel.name}</span>
-                </div>
-                <p className="text-gray-900 whitespace-pre-wrap">
-                  {message.content || (isLoading && index === messages.length - 1 ? <span className="text-gray-400">Premýšľam...</span> : "")}
-                </p>
-                {message.image_base64 && (
-                  <img 
-                    src={`data:image/png;base64,${message.image_base64}`}
-                    alt="Vygenerovaný obrázok"
-                    className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Separator */}
-            {index < messages.length - 1 && (
-              <hr className="border-gray-200 my-4" />
-            )}
-          </div>
-        ))}
-
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="border-l-2 border-blue-500 pl-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Bot className="w-4 h-4 text-blue-600" />
-              <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-500">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Premýšľam...</span>
-            </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Fixed Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50 pb-32">
+      {/* Fixed Header - FIRST */}
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <Link
@@ -352,6 +274,84 @@ export default function Agent() {
           </div>
         </div>
       </header>
+
+      {/* Messages */}
+      <div className="container mx-auto px-4 pt-6 max-w-3xl space-y-6">
+        {messages.map((message, index) => (
+          <div key={index}>
+            {/* Thoughts ABOVE the answer */}
+            {message.role === "assistant" && (message.thoughts?.length ?? 0) > 0 && (
+              <div className="mb-3 bg-blue-50 rounded-lg p-3 border-l-2 border-blue-500">
+                <div className="flex items-center gap-2 text-xs text-blue-600 mb-2">
+                  <span>💭</span>
+                  <span className="font-medium">Myšlienkový postup</span>
+                  <span className="text-gray-400">({message.thoughts?.length})</span>
+                </div>
+                <ul className="space-y-2">
+                  {message.thoughts?.map((thought, thoughtIndex) => (
+                    <li key={thoughtIndex} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span>💭</span>
+                      <span>
+                        {thought.step}
+                        {thought.details && (
+                          <span className="text-gray-500 ml-1">— {thought.details}</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Message */}
+            {message.role === "user" ? (
+              <div className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900 ml-auto max-w-[85%]">
+                {message.content}
+              </div>
+            ) : (
+              <div className="border-l-2 border-blue-500 pl-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Bot className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
+                  <span className="text-xs text-gray-400">{selectedModel.icon} {selectedModel.name}</span>
+                </div>
+                <p className="text-gray-900 whitespace-pre-wrap">
+                  {message.content || (isLoading && index === messages.length - 1 ? <span className="text-gray-400">Premýšľam...</span> : "")}
+                </p>
+                {message.image_base64 && (
+                  <img 
+                    src={`data:image/png;base64,${message.image_base64}`}
+                    alt="Vygenerovaný obrázok"
+                    className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                    style={{ maxHeight: '400px', objectFit: 'contain' }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Separator */}
+            {index < messages.length - 1 && (
+              <hr className="border-gray-200 my-4" />
+            )}
+          </div>
+        ))}
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="border-l-2 border-blue-500 pl-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Bot className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Premýšľam...</span>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
 
       {/* Fixed Input Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
