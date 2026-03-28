@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Bot, ArrowLeft, ChevronDown, Send, Loader2, Image, Search, FileText, Globe, Wand2 } from "lucide-react";
+import { Bot, ArrowLeft, Send, Loader2, Users, Target, TrendingUp, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 const API_BASE_URL = 'https://76m820e9uwuvai-7777.proxy.runpod.net';
@@ -8,54 +8,55 @@ const API_BASE_URL = 'https://76m820e9uwuvai-7777.proxy.runpod.net';
 interface Thought {
   step: string;
   timestamp: string;
-  model?: string;
-  brand?: string;
   details?: string;
 }
 
 interface Message {
   role: "user" | "assistant";
   content: string;
-  image_base64?: string;
-  video_base64?: string;
   thoughts?: Thought[];
 }
 
-interface ModelOption {
+interface Campaign {
   id: string;
   name: string;
-  model: string;
-  description: string;
-  icon: string;
+  status: "active" | "paused" | "completed";
+  leads: number;
+  contacted: number;
+  responses: number;
 }
 
-const MODELS: ModelOption[] = [
-  { id: "light", name: "Twin Light", model: "gemma3:4b", description: "free", icon: "🌟" },
-  { id: "pro", name: "Twin Pro", model: "gemma3:12b", description: "basic", icon: "💎" },
-  { id: "research", name: "Twin Research", model: "qwen2.5:14b", description: "analýza", icon: "🔬" },
-  { id: "coder", name: "Coder Agent", model: "qwen2.5-coder:14b", description: "nástroje", icon: "⚡" },
-];
-
 const QUICK_ACTIONS = [
-  { icon: Image, label: "Obrázok", prefix: "Vygeneruj obrázok: " },
-  { icon: Search, label: "Konkurencia", prefix: "Analyzuj konkurenciu: " },
-  { icon: FileText, label: "SEO blog", prefix: "Napíš SEO blog o: " },
-  { icon: Globe, label: "Analýza URL", prefix: "Analyzuj web: " },
-  { icon: Wand2, label: "Nový Skill", prefix: "Vytvor skill na: " },
+  { icon: Target, label: "Nová kampaň", prompt: "Chcem vytvoriť novú kampaň pre" },
+  { icon: Users, label: "Hľadať leady", prompt: "Nájdite mi potenciálnych zákazníkov v segmente" },
+  { icon: Mail, label: "Odoslať emaily", prompt: "Rozbehni emailovú kampaň pre" },
+  { icon: TrendingUp, label: "Report kampane", prompt: "Ukáž mi výsledky aktívnej kampane" },
 ];
 
 export default function Agent() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Dobrý deň! Som Tvojton AI, tvoj osobný asistent. Ako ti dnes môžem pomôcť?",
+      content: "Dobrý deň! Som Tvojton AI - váš outreach asistent.
+
+MOJE FUNKCIE:
+• Hľadanie potenciálnych zákazníkov (leadov)
+• Odosielanie emailov a SMS
+• Volanie potenciálnym klientom
+• Reportovanie výsledkov kampane
+
+AKO NA TO:
+Jednoducho mi napíšte čo chcete, napríklad:
+• „Chcem oslovovať e-shopy v Chorvátsku, ktoré predávajú rybárske potreby"
+• „Spusti kampaň pre mladých podnikateľov na Slovensku"
+• „Pozrite sa na výsledky mojej kampane"
+
+O čom chcete vedieť viac?",
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
-  const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -107,12 +108,12 @@ export default function Agent() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "X-Model": selectedModel.model,
+          "X-Model": "gemma3:12b",
         },
         body: JSON.stringify({ 
           query: userMessage.content,
           history: historyMessages,
-          model: selectedModel.model,
+          model: "gemma3:12b",
         }),
       });
 
@@ -151,12 +152,6 @@ export default function Agent() {
                 ));
               }
               
-              if (event.type === "image") {
-                setMessages((prev) => prev.map((msg, i) => 
-                  i === assistantIndex ? { ...msg, image_base64: event.image_base64 } : msg
-                ));
-              }
-              
               if (event.type === "done") {
                 setMessages((prev) => prev.map((msg, i) => 
                   i === assistantIndex ? { ...msg, content: event.full_answer || msg.content, thoughts: event.thoughts || [] } : msg
@@ -191,13 +186,13 @@ export default function Agent() {
     }
   };
 
-  const handleQuickAction = (prefix: string) => {
-    setInput(prefix);
+  const handleQuickAction = (prompt: string) => {
+    setInput(prompt + " ");
   };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-      {/* Fixed Header - FIRST */}
+      {/* Fixed Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
@@ -233,43 +228,8 @@ export default function Agent() {
               </div>
             </div>
 
-            {/* Model Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setShowModelDropdown(!showModelDropdown)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-sm"
-              >
-                <span>{selectedModel.icon}</span>
-                <span className="font-medium text-blue-700">{selectedModel.name}</span>
-                <span className="text-xs text-gray-500">({selectedModel.description})</span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {showModelDropdown && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                  {MODELS.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => {
-                        setSelectedModel(model);
-                        setShowModelDropdown(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors ${
-                        selectedModel.id === model.id ? 'bg-blue-50' : ''
-                      }`}
-                    >
-                      <span className="text-lg">{model.icon}</span>
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">{model.name}</div>
-                        <div className="text-xs text-gray-500">{model.description}</div>
-                      </div>
-                      {selectedModel.id === model.id && (
-                        <span className="ml-auto text-blue-500">✓</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="text-xs text-gray-500 font-medium">
+              Outreach Asistent
             </div>
           </div>
         </div>
@@ -279,13 +239,12 @@ export default function Agent() {
       <div className="container mx-auto px-4 pt-6 max-w-3xl space-y-6">
         {messages.map((message, index) => (
           <div key={index}>
-            {/* Thoughts ABOVE the answer */}
+            {/* Thoughts */}
             {message.role === "assistant" && (message.thoughts?.length ?? 0) > 0 && (
               <div className="mb-3 bg-blue-50 rounded-lg p-3 border-l-2 border-blue-500">
                 <div className="flex items-center gap-2 text-xs text-blue-600 mb-2">
                   <span>💭</span>
-                  <span className="font-medium">Myšlienkový postup</span>
-                  <span className="text-gray-400">({message.thoughts?.length})</span>
+                  <span className="font-medium">Pracujem na...</span>
                 </div>
                 <ul className="space-y-2">
                   {message.thoughts?.map((thought, thoughtIndex) => (
@@ -305,7 +264,7 @@ export default function Agent() {
 
             {/* Message */}
             {message.role === "user" ? (
-              <div className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900 ml-auto max-w-[85%]">
+              <div className="bg-blue-100 px-4 py-3 rounded-lg text-gray-900 ml-auto max-w-[85%]">
                 {message.content}
               </div>
             ) : (
@@ -313,23 +272,13 @@ export default function Agent() {
                 <div className="flex items-center gap-2 mb-1">
                   <Bot className="w-4 h-4 text-blue-600" />
                   <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
-                  <span className="text-xs text-gray-400">{selectedModel.icon} {selectedModel.name}</span>
                 </div>
                 <p className="text-gray-900 whitespace-pre-wrap">
                   {message.content || (isLoading && index === messages.length - 1 ? <span className="text-gray-400">Premýšľam...</span> : "")}
                 </p>
-                {message.image_base64 && (
-                  <img 
-                    src={`data:image/png;base64,${message.image_base64}`}
-                    alt="Vygenerovaný obrázok"
-                    className="mt-3 rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
-                )}
               </div>
             )}
 
-            {/* Separator */}
             {index < messages.length - 1 && (
               <hr className="border-gray-200 my-4" />
             )}
@@ -345,7 +294,7 @@ export default function Agent() {
             </div>
             <div className="flex items-center gap-2 text-gray-500">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Premýšľam...</span>
+              <span className="text-sm">Pracujem na vašej požiadavke...</span>
             </div>
           </div>
         )}
@@ -356,15 +305,15 @@ export default function Agent() {
       {/* Fixed Input Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
         <div className="container mx-auto px-4 max-w-3xl">
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {QUICK_ACTIONS.map((action, index) => (
               <button
                 key={index}
-                onClick={() => handleQuickAction(action.prefix)}
+                onClick={() => handleQuickAction(action.prompt)}
                 disabled={isLoading}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <action.icon className="w-3.5 h-3.5 text-blue-500" />
+                <action.icon className="w-4 h-4" />
                 <span>{action.label}</span>
               </button>
             ))}
@@ -375,14 +324,14 @@ export default function Agent() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Napíš správu..."
+              placeholder="Napíšte vašu požiadavku..."
               disabled={isLoading}
               className="flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSendMessage}
               disabled={!input.trim() || isLoading}
-              className="px-5 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               <Send className="w-4 h-4" />
               <span>Odoslať</span>
