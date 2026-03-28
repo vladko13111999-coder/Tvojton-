@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
-import { Bot, ArrowLeft, ChevronDown, Sparkles, Image, Search, Video, FileText, Globe, Wand2 } from "lucide-react";
+import { Bot, ArrowLeft, ChevronDown, Send, Loader2, Image, Search, FileText, Globe, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://37gt7a0hmcbdqm-7777.proxy.runpod.net';
+const API_BASE_URL = 'https://76m820e9uwuvai-7777.proxy.runpod.net';
 
 interface Thought {
   step: string;
@@ -57,12 +57,13 @@ export default function Agent() {
   const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const checkHealth = useCallback(async () => {
@@ -70,7 +71,7 @@ export default function Agent() {
       const response = await fetch(`${API_BASE_URL}/health`);
       setIsOnline(response.ok);
       if (!response.ok) {
-        toast.error("AI agent nie je online. Skontroluj pripojenie.");
+        toast.error("AI agent nie je online.");
       }
     } catch {
       setIsOnline(false);
@@ -89,20 +90,16 @@ export default function Agent() {
     setInput("");
     setIsLoading(true);
 
-    // Create assistant placeholder
     const assistantMessage: Message = {
       role: "assistant",
       content: "",
       thoughts: [],
     };
 
-    // Get current message count for assistant index
     const assistantIndex = messages.length + 1;
 
-    // Add both messages at once
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-    // Get last 10 messages for context (user + assistant)
     const historyMessages = [...messages, userMessage].slice(-10);
 
     try {
@@ -199,11 +196,11 @@ export default function Agent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             <Link
               href="/"
               className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
@@ -213,11 +210,11 @@ export default function Agent() {
             </Link>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
-                <Bot className="w-6 h-6 text-white" />
+              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="font-semibold text-gray-900">Tvojton AI</h1>
+                <h1 className="font-semibold text-gray-900 text-sm">Tvojton AI</h1>
                 <div className="flex items-center gap-1.5">
                   {isOnline === null ? (
                     <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
@@ -279,46 +276,59 @@ export default function Agent() {
       </header>
 
       {/* Chat Area */}
-      <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xl h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+      <main className="flex-1 container mx-auto px-4 py-6 max-w-3xl">
+        <div className="flex flex-col h-[calc(100vh-180px)]">
           {/* Messages */}
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+          <div className="flex-1 overflow-y-auto space-y-6">
             {messages.map((message, index) => (
               <div key={index}>
-                <div
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 break-words ${
-                      message.role === "user"
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-gray-100 text-gray-900 rounded-bl-md"
-                    }`}
-                    style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                  >
-                    {message.role === "assistant" && (
-                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
-                        <Bot className="w-4 h-4" />
-                        <span className="font-medium text-gray-700">Tvojton AI</span>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-blue-600">{selectedModel.icon} {selectedModel.name}</span>
+                {/* Thoughts ABOVE the answer */}
+                {message.role === "assistant" && (message.thoughts?.length ?? 0) > 0 && (
+                  <details className="mb-3">
+                    <summary className="cursor-pointer list-none mb-2">
+                      <div className="inline-flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                        💭
+                        <span className="font-medium">Myšlienkový postup</span>
+                        <span className="text-gray-400">({message.thoughts?.length})</span>
                       </div>
-                    )}
-                    {message.role === "user" && (
-                      <div className="flex items-center gap-2 mb-1 text-xs text-blue-200">
-                        <span>Ty</span>
-                      </div>
-                    )}
-                    
-                    {/* Message content */}
-                    <p 
-                      className="whitespace-pre-wrap break-words max-h-64 overflow-y-auto"
-                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                    >
+                    </summary>
+                    <div className="bg-blue-50 rounded-lg p-3 border-l-2 border-blue-500 ml-2">
+                      <ul className="space-y-2">
+                        {message.thoughts?.map((thought, thoughtIndex) => (
+                          <li key={thoughtIndex} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span>💭</span>
+                            <span>
+                              {thought.step}
+                              {thought.details && (
+                                <span className="text-gray-500 ml-1">— {thought.details}</span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </details>
+                )}
+
+                {/* Message */}
+                {message.role === "user" ? (
+                  /* User message - right aligned, light background */
+                  <div className="w-full">
+                    <div className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900 ml-auto max-w-[85%]">
                       {message.content}
+                    </div>
+                  </div>
+                ) : (
+                  /* Agent message - left aligned, no background, left border */
+                  <div className="w-full border-l-2 border-blue-500 pl-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Bot className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
+                      <span className="text-xs text-gray-400">{selectedModel.icon} {selectedModel.name}</span>
+                    </div>
+                    <p className="text-gray-900 whitespace-pre-wrap">
+                      {message.content || (isLoading && index === messages.length - 1 ? <span className="text-gray-400">Premýšľam...</span> : "")}
                     </p>
-                    
-                    {/* Image */}
                     {message.image_base64 && (
                       <img 
                         src={`data:image/png;base64,${message.image_base64}`}
@@ -327,8 +337,6 @@ export default function Agent() {
                         style={{ maxHeight: '400px', objectFit: 'contain' }}
                       />
                     )}
-                    
-                    {/* Video */}
                     {message.video_base64 && (
                       <video 
                         src={`data:video/mp4;base64,${message.video_base64}`}
@@ -338,105 +346,43 @@ export default function Agent() {
                       />
                     )}
                   </div>
-                </div>
-                
-                {/* Thoughts section - always visible for assistant messages */}
-                {message.role === "assistant" && (
-                  <details className="mt-2 ml-4 max-w-[85%] group">
-                    <summary className="cursor-pointer list-none">
-                      {/* Model badge - visible when collapsed */}
-                      <div className="inline-flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors">
-                        <Bot className="w-3 h-3" />
-                        <span className="font-medium">Twin Pro</span>
-                        <span className="text-gray-400">•</span>
-                        <Sparkles className="w-3 h-3" />
-                        <span className="text-gray-600">
-                          Myšlienkový postup
-                          {message.thoughts && message.thoughts.length > 0 && (
-                            <span className="ml-1">({message.thoughts.length})</span>
-                          )}
-                        </span>
-                        <ChevronDown className="w-3 h-3 text-gray-400 group-open:rotate-180 transition-transform ml-1" />
-                      </div>
-                    </summary>
-                    
-                    {/* Thoughts content */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100 mt-2">
-                      <ul className="space-y-2">
-                        {message.thoughts && message.thoughts.length > 0 ? (
-                          message.thoughts.map((thought, thoughtIndex) => {
-                            const time = thought.timestamp ? new Date(thought.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }) : '';
-                            return (
-                              <li key={thoughtIndex} className="flex items-start gap-2 text-xs text-gray-700">
-                                <span className="text-blue-500 mt-0.5 shrink-0">{time} •</span>
-                                <span className="break-words flex-1">
-                                  <span className="font-medium text-gray-800">{thought.step}</span>
-                                  {thought.brand && (
-                                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">
-                                      {thought.brand}
-                                    </span>
-                                  )}
-                                  {thought.details && (
-                                    <span className="ml-1.5 text-gray-500">
-                                      — {thought.details}
-                                    </span>
-                                  )}
-                                </span>
-                              </li>
-                            );
-                          })
-                        ) : (
-                          <li className="text-xs text-gray-400 italic flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 animate-pulse" />
-                            Načítavam myšlienkový postup...
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </details>
+                )}
+
+                {/* Separator */}
+                {index < messages.length - 1 && (
+                  <hr className="border-gray-200 my-4" />
                 )}
               </div>
             ))}
+
+            {/* Loading indicator */}
             {isLoading && (
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 max-w-[85%]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bot className="w-4 h-4 animate-pulse text-blue-500" />
-                      <span className="text-sm font-medium text-gray-700">Twin Pro</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
-                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
-                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
-                      </div>
-                      <span>Premýšľam...</span>
-                    </div>
+              <div className="w-full">
+                <div className="border-l-2 border-blue-500 pl-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Bot className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-medium text-blue-600">Tvojton AI</span>
                   </div>
-                </div>
-                <div className="ml-4 max-w-[85%]">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
-                    <div className="flex items-center gap-2 text-xs text-blue-600">
-                      <Sparkles className="w-3 h-3 animate-pulse" />
-                      <span>Získavam myšlienkový postup...</span>
-                    </div>
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Premýšľam...</span>
                   </div>
                 </div>
               </div>
             )}
+            
             <div ref={messagesEndRef} />
           </div>
 
           {/* Quick Actions */}
-          <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+          <div className="mt-4">
             <div className="flex flex-wrap gap-2">
               {QUICK_ACTIONS.map((action, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action.prefix)}
                   disabled={isLoading}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <action.icon className="w-3.5 h-3.5 text-blue-500" />
                   <span>{action.label}</span>
@@ -444,34 +390,32 @@ export default function Agent() {
               ))}
             </div>
           </div>
-
-          {/* Input */}
-          <div className="border-t border-gray-100 p-4 bg-white">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Napíš správu alebo použi rýchle akcie..."
-                disabled={isLoading}
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!input.trim() || isLoading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? "..." : "Odoslať"}
-              </button>
-            </div>
-          </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="py-4 text-center text-sm text-gray-500">
-        <p>Tvojton AI — Tvoj osobný AI asistent pre podnikanie</p>
+      {/* Footer - Input */}
+      <footer className="bg-white border-t border-gray-200 p-4">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Napíš správu..."
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!input.trim() || isLoading}
+              className="px-5 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              <span>Odoslať</span>
+            </button>
+          </div>
+        </div>
       </footer>
     </div>
   );
