@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="sk">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Tvojton.online - Tvoj osobný AI asistent do vrecka</title>    
+    <meta name="description" content="Tvoj osobný AI asistent do vrecka. Pomôže ti s textami, reklamami, vyhľadávaním a čoskoro aj s videami. Vyskúšaj zadarmo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,100;1,14..32,400&display=swap" rel="stylesheet" />
+  </head>
+
+  <body>
+    <style>
+      .test-badge {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #ef4444;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        z-index: 99999;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+      }
+    </style>
+    <div class="test-badge">🔧 TEST VERZIA - developer branch</div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Analytics (optional)
+      if (import.meta.env.VITE_ANALYTICS_ENDPOINT && import.meta.env.VITE_ANALYTICS_WEBSITE_ID) {
+        document.write('<script defer src="' + import.meta.env.VITE_ANALYTICS_ENDPOINT + '/umami" data-website-id="' + import.meta.env.VITE_ANALYTICS_WEBSITE_ID + '"><\/script>');
+      }
+    </script>
+  </body>
+
+</html>

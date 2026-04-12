@@ -1,0 +1,1 @@
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKED/dzxoKMpCPLPxci2G/d2fJXTO2GzieCtBYuEZdyT opencode-agent

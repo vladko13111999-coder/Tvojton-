@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1773222611851,
+      "tag": "0000_solid_tenebrous",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1773222725870,
+      "tag": "0001_nosy_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773473301658,
+      "tag": "0002_confused_medusa",
+      "breakpoints": true
+    }
+  ]
+}
