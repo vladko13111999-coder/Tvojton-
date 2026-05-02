@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-
-# Sitemaps
-Sitemap: https://tvojton.online/sitemap.xml
-
-# Disallow admin or private paths (none for this site)
-# Disallow: /admin/
-# Disallow: /private/
