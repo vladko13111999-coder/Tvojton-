@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import chroma from 'chroma-js';
 import { generatePalette, checkContrast, getTextColor } from '../utils/colorUtils';
 import { loadGoogleFont, getFontPairs } from '../utils/fontUtils';
 import { generateBrandKitPDF } from '../utils/pdfGenerator';
