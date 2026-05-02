@@ -1,4 +1,5 @@
-import { useParams, useEffect, Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import blogPosts from '../data/blogPosts';
 import AdSenseSlots from '../components/AdSenseSlots';
 
